@@ -7,7 +7,7 @@
 ## 📸 ภาพตัวอย่างหน้าจอ (Screenshots)
 
 ### 1. หน้าจอ Launchpad หลัก (FullScreen Glassmorphism & 7×5 Grid)
-![Launchpad Screenshot 1](screenshot/screenshot.png)
+![Launchpad Screenshot 1](screenshot/Screenshot.png)
 
 <br/>
 
