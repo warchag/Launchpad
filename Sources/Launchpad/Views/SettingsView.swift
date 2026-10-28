@@ -9,6 +9,8 @@ public struct SettingsView: View {
     @State private var isCopiedDonate: Bool = false
     @State private var showPromptPayQR: Bool = true
     @State private var promptPayQRImage: NSImage? = nil
+    @State private var isCheckingUpdates: Bool = false
+    @State private var updateCheckResult: String? = nil
 
     public init() {}
 
@@ -578,6 +580,104 @@ public struct SettingsView: View {
             }
 
             VStack(spacing: 12) {
+                // GitHub Repository & Version Check Row
+                VStack(spacing: 8) {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(Color.purple.opacity(0.15))
+                                .frame(width: 36, height: 36)
+                            Image(systemName: "chevron.left.forwardslash.chevron.right")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.purple)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text("GitHub: warchag/Launchpad")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text("v1.2.0")
+                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.purple.opacity(0.15))
+                                    .foregroundColor(.purple)
+                                    .clipShape(Capsule())
+                            }
+                            Text("https://github.com/warchag/Launchpad")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+
+                        Spacer()
+
+                        // Visit GitHub Repo Link
+                        if let url = URL(string: "https://github.com/warchag/Launchpad") {
+                            Link(destination: url) {
+                                HStack(spacing: 4) {
+                                    Text(tr("เปิด GitHub", "GitHub"))
+                                        .font(.system(size: 11.5, weight: .medium))
+                                    Image(systemName: "arrow.up.right")
+                                        .font(.system(size: 10, weight: .semibold))
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Color.purple.opacity(0.12))
+                                .foregroundColor(.purple)
+                                .cornerRadius(6)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        // Check for Updates Button
+                        Button(action: {
+                            checkForUpdates()
+                        }) {
+                            HStack(spacing: 4) {
+                                if isCheckingUpdates {
+                                    ProgressView()
+                                        .scaleEffect(0.55)
+                                        .frame(width: 12, height: 12)
+                                } else {
+                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                        .font(.system(size: 10.5, weight: .semibold))
+                                }
+                                Text(tr("ตรวจสอบอัปเดต", "Check Updates"))
+                                    .font(.system(size: 11.5, weight: .medium))
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.secondary.opacity(0.12))
+                            .foregroundColor(.primary)
+                            .cornerRadius(6)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isCheckingUpdates)
+                    }
+
+                    if let result = updateCheckResult {
+                        HStack(spacing: 6) {
+                            Image(systemName: "info.circle.fill")
+                                .font(.system(size: 11))
+                                .foregroundColor(.accentColor)
+                            Text(result)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            if let releaseUrl = URL(string: "https://github.com/warchag/Launchpad/releases") {
+                                Link(tr("เปิดหน้า Releases", "View Releases"), destination: releaseUrl)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.accentColor)
+                            }
+                        }
+                        .padding(.top, 4)
+                        .padding(.horizontal, 4)
+                    }
+                }
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.secondary.opacity(0.06)))
+
                 // Facebook Row
                 HStack(spacing: 12) {
                     ZStack {
@@ -766,5 +866,44 @@ public struct SettingsView: View {
                 .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.secondary.opacity(0.06)))
             }
         }
+    }
+
+    private func checkForUpdates() {
+        guard !isCheckingUpdates else { return }
+        isCheckingUpdates = true
+        updateCheckResult = nil
+        HapticManager.shared.playClick()
+
+        guard let url = URL(string: "https://api.github.com/repos/warchag/Launchpad/releases/latest") else {
+            isCheckingUpdates = false
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("Launchpad-App", forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = 4.0
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                self.isCheckingUpdates = false
+                let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.0"
+                if let data = data,
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let tagName = json["tag_name"] as? String {
+                    let cleanTag = tagName.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
+                    if cleanTag.compare(currentVersion, options: .numeric) == .orderedDescending {
+                        self.updateCheckResult = self.tr("พบเวอร์ชันใหม่ \(tagName)! พร้อมให้อัปเดต", "New version \(tagName) is available!")
+                    } else {
+                        self.updateCheckResult = self.tr("คุณกำลังใช้เวอร์ชันล่าสุดแล้ว (v\(currentVersion))", "You are using the latest version (v\(currentVersion))")
+                    }
+                } else {
+                    // Fallback to opening Releases page in browser
+                    self.updateCheckResult = self.tr("กำลังเปิดหน้า Releases บน GitHub...", "Opening Releases on GitHub...")
+                    if let releasesURL = URL(string: "https://github.com/warchag/Launchpad/releases") {
+                        NSWorkspace.shared.open(releasesURL)
+                    }
+                }
+            }
+        }.resume()
     }
 }
