@@ -23,13 +23,13 @@ public struct FolderDetailView: View {
     }
 
     private var columns: [GridItem] {
-        Array(repeating: GridItem(.fixed(settings.iconSize + 42), spacing: 20), count: columnCount)
+        Array(repeating: GridItem(.fixed(settings.iconSize + 36), spacing: 18), count: columnCount)
     }
 
     private var cardWidth: CGFloat {
         let cols = CGFloat(columnCount)
-        let itemWidth = settings.iconSize + 42
-        let totalSpacing = (cols - 1) * 20
+        let itemWidth = settings.iconSize + 36
+        let totalSpacing = (cols - 1) * 18
         return cols * itemWidth + totalSpacing + 64
     }
 

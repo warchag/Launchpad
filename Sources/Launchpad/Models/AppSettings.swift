@@ -7,6 +7,9 @@ import Carbon
 public final class AppSettings: ObservableObject {
     public static let shared = AppSettings()
 
+    // Standard native macOS Launchpad icon size (large and crisp)
+    public static let standardIconSize: CGFloat = 82.0
+
     // Key constants
     private enum Keys {
         static let iconSize = "app_icon_size"
@@ -274,12 +277,9 @@ public final class AppSettings: ObservableObject {
 
         self.autoSortAlphabetically = defaults.bool(forKey: Keys.autoSortAlphabetically)
 
-        if defaults.object(forKey: Keys.iconSize) == nil || defaults.double(forKey: Keys.iconSize) == 82.0 {
-            self.iconSize = 64.0
-            defaults.set(64.0, forKey: Keys.iconSize)
-        } else {
-            self.iconSize = CGFloat(defaults.double(forKey: Keys.iconSize))
-        }
+        // Native macOS Launchpad icon size standard
+        self.iconSize = AppSettings.standardIconSize
+        defaults.set(Double(AppSettings.standardIconSize), forKey: Keys.iconSize)
 
         self.gridColumns = defaults.integer(forKey: Keys.gridColumns)
         self.gridRows = defaults.integer(forKey: Keys.gridRows)
@@ -309,7 +309,7 @@ public final class AppSettings: ObservableObject {
 
     public func resetToDefaults() {
         autoSortAlphabetically = false
-        iconSize = 64.0
+        iconSize = AppSettings.standardIconSize
         gridColumns = 7
         gridRows = 5
         backgroundOpacity = 0.38

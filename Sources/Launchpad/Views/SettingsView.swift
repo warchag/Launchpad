@@ -70,43 +70,22 @@ public struct SettingsView: View {
     // 1. Layout & Icons Tab
     private var layoutSection: some View {
         VStack(alignment: .leading, spacing: 22) {
-            // Icon Size Slider
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
+            // Native macOS Launchpad Icon Standard Badge
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("App Icon Size")
                         .font(.headline)
-                    Spacer()
-                    Text(settings.iconSize == 64 ? "64 px (Classic iOS / Launchpad)" : "\(Int(settings.iconSize)) px")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundColor(.accentColor)
-                }
-
-                HStack(spacing: 12) {
-                    Image(systemName: "app")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-
-                    Slider(value: $settings.iconSize, in: 48...96, step: 2)
-
-                    Image(systemName: "app")
-                        .font(.system(size: 20))
-                        .foregroundColor(.secondary)
-                }
-
-                HStack {
-                    Text("Adjust icon size (Classic Apple standard is 64px).")
+                    Text("Icons use the native macOS Launchpad standard (large & high resolution).")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Spacer()
-                    if settings.iconSize != 64 {
-                        Button("Reset to 64px") {
-                            settings.iconSize = 64
-                        }
-                        .buttonStyle(.plain)
-                        .font(.caption)
-                        .foregroundColor(.accentColor)
-                    }
                 }
+                Spacer()
+                Text("Native Large (82 px)")
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Capsule().fill(Color.accentColor.opacity(0.15)))
+                    .foregroundColor(.accentColor)
             }
 
             Divider()

@@ -29,7 +29,7 @@ public struct LaunchpadOverlayView: View {
     private var pageSize: Int { settings.pageSize }
 
     private var columns: [GridItem] {
-        Array(repeating: GridItem(.fixed(settings.iconSize + 40), spacing: 20), count: settings.gridColumns)
+        Array(repeating: GridItem(.fixed(settings.iconSize + 36), spacing: 18), count: settings.gridColumns)
     }
 
     public init(scanner: AppScanner = .shared, onDismiss: @escaping () -> Void) {
@@ -255,6 +255,7 @@ public struct LaunchpadOverlayView: View {
                 self.itemFrames = frames
             }
         }
+        .ignoresSafeArea()
         .onAppear {
             scanner.scanAppsIfNeeded()
             wallpaperManager.loadWallpaper()
@@ -378,7 +379,7 @@ public struct LaunchpadOverlayView: View {
                 if abs(pageIndex - currentPage) <= 1 {
                     let pageItems = pageIndex < pages.count ? pages[pageIndex] : []
 
-                    LazyVGrid(columns: columns, spacing: 20) {
+                    LazyVGrid(columns: columns, spacing: 16) {
                         ForEach(pageItems) { item in
                             let isBeingDragged = draggingItem?.id == item.id
                             let isTarget = currentHoverTargetId == item.id

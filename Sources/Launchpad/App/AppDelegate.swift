@@ -30,6 +30,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
+    public func applicationWillTerminate(_ notification: Notification) {
+        LaunchpadWindowController.shared.restorePresentationOptions()
+    }
+
     private func getStatusBarImage() -> NSImage {
         if let iconPath = Bundle.main.path(forResource: "StatusBarIcon", ofType: "png"),
            let img = NSImage(contentsOfFile: iconPath) {

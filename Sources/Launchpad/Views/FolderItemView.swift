@@ -84,7 +84,7 @@ public struct FolderItemView: View {
                 .multilineTextAlignment(.center)
                 .frame(width: settings.iconSize + 34, height: 32, alignment: .top)
         }
-        .frame(width: settings.iconSize + 42, height: settings.iconSize + 48)
+        .frame(width: settings.iconSize + 36, height: settings.iconSize + 44)
         .contentShape(Rectangle())
         .opacity(isBeingDragged ? 0.88 : 1.0)
         .onAppear {

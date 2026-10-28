@@ -5,6 +5,12 @@ public final class LaunchpadWindow: NSPanel {
     override public var canBecomeKey: Bool { true }
     override public var canBecomeMain: Bool { true }
 
+    override public func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
+        // Prevent AppKit from constraining the window below the menu bar or notch area.
+        // This ensures the window covers the full physical display edge-to-edge.
+        return frameRect
+    }
+
     override public func scrollWheel(with event: NSEvent) {
         if LaunchpadWindowController.shared.handleScrollWheel(event: event) {
             return
@@ -24,6 +30,7 @@ public final class LaunchpadWindowController: NSObject, NSWindowDelegate {
     private var localEventMonitor: Any?
     private var lastScrollTime: TimeInterval = 0
     private var accumulatedScrollDelta: CGFloat = 0
+    private var savedPresentationOptions: NSApplication.PresentationOptions = []
 
     private override init() {
         super.init()
@@ -70,8 +77,8 @@ public final class LaunchpadWindowController: NSObject, NSWindowDelegate {
             )
             panel.isOpaque = false
             panel.backgroundColor = .clear
-            panel.level = .popUpMenu
-            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
+            panel.level = .screenSaver
+            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle, .stationary]
             panel.hasShadow = false
             panel.isMovable = false
             panel.acceptsMouseMovedEvents = true
@@ -82,6 +89,7 @@ public final class LaunchpadWindowController: NSObject, NSWindowDelegate {
                 rootView: LaunchpadOverlayView(scanner: .shared) { [weak self] in
                     self?.dismiss()
                 }
+                .ignoresSafeArea()
             )
             panel.contentView = hostingView
             self.window = panel
@@ -90,6 +98,10 @@ public final class LaunchpadWindowController: NSObject, NSWindowDelegate {
         guard let win = window else { return }
         win.setFrame(screenFrame, display: true)
         
+        // Hide Menu Bar and Dock so Launchpad is fully immersive and uninhibited across all Macs
+        savedPresentationOptions = NSApp.presentationOptions
+        NSApp.presentationOptions = [.hideMenuBar, .hideDock]
+
         // Setup local event monitor for Escape, Arrow keys, and Scroll Wheel
         setupEventMonitor()
 
@@ -107,6 +119,10 @@ public final class LaunchpadWindowController: NSObject, NSWindowDelegate {
         isVisible = true
     }
 
+    public func restorePresentationOptions() {
+        NSApp.presentationOptions = savedPresentationOptions
+    }
+
     public func dismiss() {
         guard isVisible, !isDismissing, let win = window else { return }
         isDismissing = true
@@ -122,6 +138,7 @@ public final class LaunchpadWindowController: NSObject, NSWindowDelegate {
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 win.orderOut(nil)
+                self.restorePresentationOptions()
                 self.isVisible = false
                 self.isDismissing = false
                 AppScanner.shared.searchText = ""
