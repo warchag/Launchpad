@@ -133,4 +133,4 @@ cd Launchpad
 ## 📋 ความต้องการของระบบ (System Requirements)
 
 * **ระบบปฏิบัติการ**: macOS 14.0 Sonoma หรือใหม่กว่า (macOS 15 Sequoia, macOS 26+)
-* **ฮาร์ดแวร์**: รองรับทั้งชิป Apple Silicon (M1 / M2 / M3 / M4 ทุกซีรีส์) และ Intel Mac
+* **ฮาร์ดแวร์**: รองรับทั้งชิป Apple Silicon (M1 / M2 / M3 / M4  /  M5 ทุกซีรีส์) และ Intel Mac

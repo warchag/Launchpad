@@ -6,6 +6,7 @@ public struct SettingsView: View {
     @ObservedObject var scanner: AppScanner = .shared
     @State private var isRecordingShortcut: Bool = false
     @State private var shortcutMonitor: Any?
+    @State private var isCopiedDonate: Bool = false
 
     public init() {}
 
@@ -22,6 +23,10 @@ public struct SettingsView: View {
                     Divider()
 
                     layoutSection
+
+                    Divider()
+
+                    contactSection
                 }
                 .padding(24)
             }
@@ -463,6 +468,115 @@ public struct SettingsView: View {
         if let monitor = shortcutMonitor {
             NSEvent.removeMonitor(monitor)
             shortcutMonitor = nil
+        }
+    }
+
+    // Contact & Support Section
+    private var contactSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 8) {
+                Image(systemName: "heart.circle.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(.pink)
+                Text("ติดต่อ & สนับสนุนผู้พัฒนา")
+                    .font(.headline)
+            }
+
+            VStack(spacing: 10) {
+                // Facebook Row
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.blue.opacity(0.15))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "hand.thumbsup.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(.blue)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Facebook: Learn to Developer")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text("https://www.facebook.com/learntodeveloper")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+
+                    if let url = URL(string: "https://www.facebook.com/learntodeveloper") {
+                        Link(destination: url) {
+                            HStack(spacing: 4) {
+                                Text("เปิดเพจ")
+                                    .font(.system(size: 11.5, weight: .medium))
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 10, weight: .semibold))
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.blue.opacity(0.12))
+                            .foregroundColor(.blue)
+                            .cornerRadius(6)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.secondary.opacity(0.06)))
+
+                // Donate / Buy Me a Coffee Row
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.orange.opacity(0.15))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "cup.and.saucer.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(.orange)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("โดเนท หรือ Buy Me a Coffee (พร้อมเพย์)")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text("0959201930")
+                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .foregroundColor(.primary)
+                    }
+
+                    Spacer()
+
+                    Button(action: {
+                        let pb = NSPasteboard.general
+                        pb.clearContents()
+                        pb.setString("0959201930", forType: .string)
+                        HapticManager.shared.playClick()
+                        withAnimation(.spring(response: 0.25)) {
+                            isCopiedDonate = true
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            withAnimation(.spring(response: 0.25)) {
+                                isCopiedDonate = false
+                            }
+                        }
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: isCopiedDonate ? "checkmark" : "doc.on.doc")
+                                .font(.system(size: 10.5, weight: .semibold))
+                            Text(isCopiedDonate ? "คัดลอกแล้ว!" : "คัดลอกเบอร์")
+                                .font(.system(size: 11.5, weight: .medium))
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(isCopiedDonate ? Color.green.opacity(0.16) : Color.orange.opacity(0.12))
+                        .foregroundColor(isCopiedDonate ? .green : .orange)
+                        .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.secondary.opacity(0.06)))
+            }
         }
     }
 }
