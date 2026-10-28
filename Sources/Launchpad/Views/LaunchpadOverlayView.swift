@@ -261,7 +261,7 @@ public struct LaunchpadOverlayView: View {
             wallpaperManager.loadWallpaper()
         }
         .onReceive(NotificationCenter.default.publisher(for: .launchpadPreviousPage)) { _ in
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            withAnimation(.spring(response: 0.36, dampingFraction: 0.88)) {
                 if currentPage > 0 {
                     currentPage -= 1
                     HapticManager.shared.playPage()
@@ -269,7 +269,7 @@ public struct LaunchpadOverlayView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .launchpadNextPage)) { _ in
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            withAnimation(.spring(response: 0.36, dampingFraction: 0.88)) {
                 if currentPage < pages.count - 1 {
                     currentPage += 1
                     HapticManager.shared.playPage()
@@ -409,10 +409,12 @@ public struct LaunchpadOverlayView: View {
                             .opacity(isBeingDragged ? 0.25 : 1.0)
                             .background(
                                 GeometryReader { geo in
-                                    Color.clear.preference(
-                                        key: ItemFramePreferenceKey.self,
-                                        value: [item.id: geo.frame(in: .named("LaunchpadGridSpace"))]
-                                    )
+                                    if pageIndex == currentPage {
+                                        Color.clear.preference(
+                                            key: ItemFramePreferenceKey.self,
+                                            value: [item.id: geo.frame(in: .named("LaunchpadGridSpace"))]
+                                        )
+                                    }
                                 }
                             )
                             .onLongPressGesture(minimumDuration: 0.5) {
@@ -508,8 +510,6 @@ public struct LaunchpadOverlayView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .offset(x: CGFloat(pageIndex - currentPage) * geometry.size.width + pageDragOffset)
-                    .opacity(pageIndex == currentPage ? 1.0 : 0.0)
-                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: currentPage)
                     .animation(.interactiveSpring(), value: pageDragOffset)
                 }
             }
@@ -523,7 +523,7 @@ public struct LaunchpadOverlayView: View {
                 .onEnded { value in
                     guard draggingItem == nil else { return }
                     let threshold: CGFloat = 80
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    withAnimation(.spring(response: 0.36, dampingFraction: 0.88)) {
                         if value.translation.width < -threshold && currentPage < totalPages - 1 {
                             currentPage += 1
                             HapticManager.shared.playPage()

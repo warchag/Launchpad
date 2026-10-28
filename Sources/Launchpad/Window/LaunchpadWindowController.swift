@@ -30,6 +30,7 @@ public final class LaunchpadWindowController: NSObject, NSWindowDelegate {
     private var localEventMonitor: Any?
     private var lastScrollTime: TimeInterval = 0
     private var accumulatedScrollDelta: CGFloat = 0
+    private var isScrollPagingLocked: Bool = false
     private var savedPresentationOptions: NSApplication.PresentationOptions = []
 
     private override init() {
@@ -151,44 +152,71 @@ public final class LaunchpadWindowController: NSObject, NSWindowDelegate {
         guard AppScanner.shared.searchText.isEmpty else { return false }
 
         let now = Date().timeIntervalSinceReferenceDate
-        guard now - lastScrollTime > 0.18 else { return true }
-
         let isPrecise = event.hasPreciseScrollingDeltas
-        let dy = isPrecise ? event.scrollingDeltaY : event.deltaY
-        let dx = isPrecise ? event.scrollingDeltaX : event.deltaX
-
-        // Dominant axis: choose whichever delta has greater magnitude
-        let delta = abs(dx) > abs(dy) ? dx : dy
 
         if isPrecise {
-            accumulatedScrollDelta += delta
-            let threshold: CGFloat = 25.0
+            // Trackpad Gesture Phase Handling:
+            // Unlock on new swipe began or when previous gesture completely ends
+            if event.phase == .began {
+                isScrollPagingLocked = false
+                accumulatedScrollDelta = 0
+            }
+
+            if event.phase == .ended || event.phase == .cancelled {
+                if event.momentumPhase == [] || event.momentumPhase == .ended {
+                    isScrollPagingLocked = false
+                    accumulatedScrollDelta = 0
+                }
+            }
+
+            if event.momentumPhase == .ended {
+                isScrollPagingLocked = false
+                accumulatedScrollDelta = 0
+            }
+
+            // Once a page flip occurs in a gesture, lock until fingers lift
+            guard !isScrollPagingLocked else { return true }
+
+            // Enforce minimum cooldown between page turns
+            guard now - lastScrollTime > 0.35 else { return true }
+
+            let dx = event.scrollingDeltaX
+            let dy = event.scrollingDeltaY
+
+            // Only respond to horizontal swipes (ignore mostly vertical scrolls)
+            guard abs(dx) >= abs(dy) * 0.75 && abs(dx) > 1.5 else { return false }
+
+            accumulatedScrollDelta += dx
+            let threshold: CGFloat = 45.0
 
             if accumulatedScrollDelta < -threshold {
-                // Scroll down / swipe left -> Next Page
+                // Swipe left -> Next Page
                 NotificationCenter.default.post(name: .launchpadNextPage, object: nil)
+                isScrollPagingLocked = true
                 accumulatedScrollDelta = 0
                 lastScrollTime = now
                 return true
             } else if accumulatedScrollDelta > threshold {
-                // Scroll up / swipe right -> Previous Page
+                // Swipe right -> Previous Page
                 NotificationCenter.default.post(name: .launchpadPreviousPage, object: nil)
+                isScrollPagingLocked = true
                 accumulatedScrollDelta = 0
                 lastScrollTime = now
                 return true
             }
-
-            if event.phase == .ended || event.phase == .cancelled {
-                accumulatedScrollDelta = 0
-            }
         } else {
             // Clicky / notched mouse wheel
-            if delta < -0.15 {
+            guard now - lastScrollTime > 0.35 else { return true }
+            let dy = event.scrollingDeltaY != 0 ? event.scrollingDeltaY : event.deltaY
+            let dx = event.scrollingDeltaX != 0 ? event.scrollingDeltaX : event.deltaX
+            let delta = abs(dx) > abs(dy) ? dx : dy
+
+            if delta < -0.2 {
                 // Wheel down -> Next Page
                 NotificationCenter.default.post(name: .launchpadNextPage, object: nil)
                 lastScrollTime = now
                 return true
-            } else if delta > 0.15 {
+            } else if delta > 0.2 {
                 // Wheel up -> Previous Page
                 NotificationCenter.default.post(name: .launchpadPreviousPage, object: nil)
                 lastScrollTime = now
