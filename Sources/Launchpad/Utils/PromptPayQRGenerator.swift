@@ -56,3 +56,4 @@ public enum PromptPayQRGenerator {
         return String(format: "%04X", crc)
     }
 }
+

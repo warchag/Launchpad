@@ -4,9 +4,13 @@
 
 ---
 
-## 📸 ภาพตัวอย่างหน้าจอ (Screenshot)
+## 📸 ภาพตัวอย่างหน้าจอ (Screenshots)
 
-![Launchpad Screenshot](screenshot/screenshot.png)
+![Launchpad Screenshot 1](screenshot/screenshot.png)
+
+<br/>
+
+![Launchpad Screenshot 2](screenshot/Screenshot1.png)
 
 ---
 
