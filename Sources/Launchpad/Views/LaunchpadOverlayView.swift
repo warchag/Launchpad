@@ -136,10 +136,13 @@ public struct LaunchpadOverlayView: View {
                             .padding(.bottom, 6)
                     }
 
-                    // Recent Apps Quick Shelf (Page 0, All Category, not searching)
-                    if settings.showRecentApps && selectedCategory == .all && currentPage == 0 && scanner.searchText.isEmpty && !scanner.recentApps.isEmpty {
-                        recentAppsShelf
-                            .padding(.bottom, 8)
+                    // Favorites & Recent Apps Dock (Shown when not searching)
+                    if settings.showRecentApps && scanner.searchText.isEmpty {
+                        FavoritesAndRecentsDockView(onLaunchApp: { app in
+                            launchApp(app)
+                        })
+                        .padding(.top, 2)
+                        .padding(.bottom, 8)
                     }
 
                     Spacer(minLength: 6)
@@ -314,48 +317,6 @@ public struct LaunchpadOverlayView: View {
             }
             .padding(.horizontal, 36)
         }
-    }
-
-    // Recent Apps Shelf
-    private var recentAppsShelf: some View {
-        HStack(spacing: 10) {
-            HStack(spacing: 5) {
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.7))
-                Text("เปิดล่าสุด:")
-                    .font(.system(size: 11.5, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.85))
-            }
-            .padding(.leading, 6)
-
-            ForEach(scanner.recentApps.prefix(6)) { app in
-                Button(action: {
-                    launchApp(app)
-                }) {
-                    HStack(spacing: 6) {
-                        Image(nsImage: app.icon)
-                            .resizable()
-                            .interpolation(.high)
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 18, height: 18)
-                        Text(app.name)
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Capsule().fill(Color.white.opacity(0.16)))
-                    .overlay(Capsule().stroke(Color.white.opacity(0.25), lineWidth: 0.5))
-                }
-                .buttonStyle(.plain)
-                .help(app.name)
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 38)
-        .padding(.vertical, 2)
     }
 
     // Paginated Grid View with direct touch/drag handling

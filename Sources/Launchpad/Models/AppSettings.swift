@@ -29,6 +29,7 @@ public final class AppSettings: ObservableObject {
         static let customModifiers = "app_custom_modifiers"
         static let hiddenAppPaths = "app_hidden_paths"
         static let recentAppPaths = "app_recent_paths"
+        static let favoriteAppPaths = "app_favorite_paths"
         static let showRecentApps = "app_show_recent_apps"
         static let enableHapticFeedback = "app_enable_haptic_feedback"
         static let hotCorner = "app_hot_corner"
@@ -105,6 +106,10 @@ public final class AppSettings: ObservableObject {
 
     @Published public var recentAppPaths: [String] {
         didSet { UserDefaults.standard.set(recentAppPaths, forKey: Keys.recentAppPaths) }
+    }
+
+    @Published public var favoriteAppPaths: [String] {
+        didSet { UserDefaults.standard.set(favoriteAppPaths, forKey: Keys.favoriteAppPaths) }
     }
 
     @Published public var hiddenAppPaths: [String] {
@@ -240,6 +245,37 @@ public final class AppSettings: ObservableObject {
         hiddenAppPaths.contains(path)
     }
 
+    // MARK: - Favorites & Recents
+    public func isFavorite(path: String) -> Bool {
+        favoriteAppPaths.contains(path)
+    }
+
+    public func toggleFavorite(path: String) {
+        if isFavorite(path: path) {
+            favoriteAppPaths.removeAll { $0 == path }
+        } else {
+            favoriteAppPaths.append(path)
+        }
+    }
+
+    public func addFavorite(path: String) {
+        if !isFavorite(path: path) {
+            favoriteAppPaths.append(path)
+        }
+    }
+
+    public func removeFavorite(path: String) {
+        favoriteAppPaths.removeAll { $0 == path }
+    }
+
+    public func clearFavorites() {
+        favoriteAppPaths.removeAll()
+    }
+
+    public func removeRecentApp(path: String) {
+        recentAppPaths.removeAll { $0 == path }
+    }
+
     // MARK: - Recent Apps
     public func recordAppLaunch(path: String) {
         var recents = recentAppPaths.filter { $0 != path }
@@ -274,6 +310,7 @@ public final class AppSettings: ObservableObject {
             Keys.hotCorner: "none",
             Keys.showRecentApps: true,
             Keys.recentAppPaths: [],
+            Keys.favoriteAppPaths: [],
             Keys.hiddenAppPaths: []
         ])
 
@@ -299,6 +336,18 @@ public final class AppSettings: ObservableObject {
         self.hotCorner = defaults.string(forKey: Keys.hotCorner) ?? "none"
         self.showRecentApps = defaults.bool(forKey: Keys.showRecentApps)
         self.recentAppPaths = defaults.stringArray(forKey: Keys.recentAppPaths) ?? []
+        let savedFavorites = defaults.stringArray(forKey: Keys.favoriteAppPaths)
+        if let savedFavorites = savedFavorites {
+            self.favoriteAppPaths = savedFavorites
+        } else {
+            // Seed standard favorites on initial setup if apps exist
+            let defaultsSeed = [
+                "/System/Applications/Safari.app",
+                "/System/Applications/System Settings.app"
+            ].filter { FileManager.default.fileExists(atPath: $0) }
+            self.favoriteAppPaths = defaultsSeed
+            defaults.set(defaultsSeed, forKey: Keys.favoriteAppPaths)
+        }
         self.hiddenAppPaths = defaults.stringArray(forKey: Keys.hiddenAppPaths) ?? []
 
         // Migrate old F-key presets to "none" (dock click)

@@ -119,6 +119,19 @@ public struct AppItemView: View {
         }
         .contextMenu {
             Button(action: {
+                HapticManager.shared.playClick()
+                settings.toggleFavorite(path: app.path)
+            }) {
+                if settings.isFavorite(path: app.path) {
+                    Label("ถอนหมุดออกจากแอปโปรด (Unpin)", systemImage: "star.slash")
+                } else {
+                    Label("ปักหมุดเป็นแอปโปรด (Pin to Favorites)", systemImage: "star")
+                }
+            }
+
+            Divider()
+
+            Button(action: {
                 NSWorkspace.shared.activateFileViewerSelecting([app.url])
             }) {
                 Label("Show in Finder", systemImage: "folder")

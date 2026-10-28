@@ -216,14 +216,45 @@ public struct SettingsView: View {
 
             Divider()
 
-            // Recent Apps Shelf
-            Toggle(isOn: $settings.showRecentApps) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("แสดงแถบแอปล่าสุด (Recent Apps Shelf)")
-                        .font(.headline)
-                    Text("แสดงแถว 6 แอพที่เปิดล่าสุดไว้ด้านบนสุดของหน้าแรก")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+            // Favorites & Recent Apps Dock
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle(isOn: $settings.showRecentApps) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("แสดงแถบแอปโปรดและเปิดล่าสุด (Favorites & Recent Apps Dock)")
+                            .font(.headline)
+                        Text("แสดงแถบมินิด็อกรวมแอปที่ปักหมุดโปรด (⭐) และแอปที่เพิ่งเปิดล่าสุด (🕒) ด้านบนของ Launchpad")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                if settings.showRecentApps {
+                    HStack(spacing: 12) {
+                        Text("แอปโปรด: \(settings.favoriteAppPaths.count) แอป  •  เปิดล่าสุด: \(settings.recentAppPaths.count) แอป")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Spacer()
+
+                        if !settings.favoriteAppPaths.isEmpty {
+                            Button("ล้างแอปโปรด") {
+                                settings.clearFavorites()
+                                HapticManager.shared.playClick()
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+
+                        if !settings.recentAppPaths.isEmpty {
+                            Button("ล้างประวัติเปิดล่าสุด") {
+                                settings.clearRecentApps()
+                                HapticManager.shared.playClick()
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                    }
+                    .padding(.leading, 24)
                 }
             }
 

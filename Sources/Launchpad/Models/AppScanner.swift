@@ -502,6 +502,17 @@ public final class AppScanner: ObservableObject {
         }
     }
 
+    // Favorite Apps list
+    public var favoriteApps: [AppItem] {
+        let hidden = Set(AppSettings.shared.hiddenAppPaths)
+        let favoritePaths = AppSettings.shared.favoriteAppPaths
+        var map: [String: AppItem] = [:]
+        for app in allApps where !hidden.contains(app.path) {
+            map[app.path] = app
+        }
+        return favoritePaths.compactMap { map[$0] }
+    }
+
     // Recent Apps list
     public var recentApps: [AppItem] {
         let hidden = Set(AppSettings.shared.hiddenAppPaths)
