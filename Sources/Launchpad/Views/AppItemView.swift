@@ -3,6 +3,7 @@ import SwiftUI
 
 public struct AppItemView: View {
     @ObservedObject private var settings: AppSettings = .shared
+    @ObservedObject private var scanner: AppScanner = .shared
     public let app: AppItem
     public var isHighlightedTarget: Bool = false
     public var isBeingDragged: Bool = false
@@ -27,7 +28,8 @@ public struct AppItemView: View {
 
     public var body: some View {
         VStack(spacing: 8) {
-            ZStack(alignment: .topLeading) {
+            ZStack(alignment: .bottom) {
+                ZStack(alignment: .topLeading) {
                 // Drop Target Highlight Frame
                 if isHighlightedTarget {
                     RoundedRectangle(cornerRadius: settings.iconSize * 0.22, style: .continuous)
@@ -84,6 +86,16 @@ public struct AppItemView: View {
                     : .default,
                 value: isWobbling
             )
+
+            // Running App Indicator Dot (like macOS Dock)
+            if scanner.isRunning(app: app) {
+                Circle()
+                    .fill(Color.white.opacity(0.92))
+                    .frame(width: 4.5, height: 4.5)
+                    .shadow(color: Color.black.opacity(0.8), radius: 2, x: 0, y: 1)
+                    .offset(y: 5)
+            }
+        }
 
             // App Title with classic drop shadow
             Text(app.name)

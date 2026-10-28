@@ -3,6 +3,7 @@ import SwiftUI
 
 public struct FolderItemView: View {
     @ObservedObject private var settings: AppSettings = .shared
+    @ObservedObject private var scanner: AppScanner = .shared
     @ObservedObject var folder: FolderItem
     public var isHighlightedTarget: Bool = false
     public var isBeingDragged: Bool = false
@@ -24,9 +25,10 @@ public struct FolderItemView: View {
 
     public var body: some View {
         VStack(spacing: 8) {
-            // Folder Icon Preview (Frosted Squircle with Mini Icons)
-            ZStack {
-                // Drop Target Highlight Frame
+            ZStack(alignment: .bottom) {
+                // Folder Icon Preview (Frosted Squircle with Mini Icons)
+                ZStack {
+                    // Drop Target Highlight Frame
                 if isHighlightedTarget {
                     RoundedRectangle(cornerRadius: settings.iconSize * 0.22, style: .continuous)
                         .stroke(Color.white, lineWidth: 2.5)
@@ -75,7 +77,17 @@ public struct FolderItemView: View {
                 value: isWobbling
             )
 
-            // Folder Title with classic drop shadow
+            // Running App Indicator Dot (if any app inside folder is running)
+            if scanner.hasRunningApps(folder: folder) {
+                Circle()
+                    .fill(Color.white.opacity(0.92))
+                    .frame(width: 4.5, height: 4.5)
+                    .shadow(color: Color.black.opacity(0.8), radius: 2, x: 0, y: 1)
+                    .offset(y: 5)
+            }
+        }
+
+        // Folder Title with classic drop shadow
             Text(folder.name)
                 .font(.system(size: 12.5, weight: .regular, design: .default))
                 .foregroundColor(.white)

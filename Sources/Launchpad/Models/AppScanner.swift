@@ -14,11 +14,69 @@ public final class AppScanner: ObservableObject {
     @Published public var searchText: String = ""
     @Published public var activeFolder: FolderItem? = nil
 
+    @Published public private(set) var runningAppPaths: Set<String> = []
+    @Published public private(set) var runningBundleIDs: Set<String> = []
+
     private var hasLoaded: Bool = false
     private let foldersKey = "launchpad_saved_folders"
     private let hasImportedSystemGroupsKey = "launchpad_has_imported_system_groups"
 
-    public init() {}
+    public init() {
+        updateRunningApps()
+        setupRunningAppsMonitor()
+    }
+
+    private func setupRunningAppsMonitor() {
+        let center = NSWorkspace.shared.notificationCenter
+        center.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.updateRunningApps()
+            }
+        }
+        center.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.updateRunningApps()
+            }
+        }
+        center.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.updateRunningApps()
+            }
+        }
+    }
+
+    public func updateRunningApps() {
+        let running = NSWorkspace.shared.runningApplications
+        var paths = Set<String>()
+        var bundleIDs = Set<String>()
+        for app in running {
+            if app.activationPolicy == .regular {
+                if let url = app.bundleURL {
+                    paths.insert(url.standardizedFileURL.path)
+                    paths.insert(url.path)
+                }
+                if let id = app.bundleIdentifier {
+                    bundleIDs.insert(id)
+                }
+            }
+        }
+        self.runningAppPaths = paths
+        self.runningBundleIDs = bundleIDs
+    }
+
+    public func isRunning(app: AppItem) -> Bool {
+        if runningAppPaths.contains(app.path) || runningAppPaths.contains(URL(fileURLWithPath: app.path).standardizedFileURL.path) {
+            return true
+        }
+        if let id = app.bundleIdentifier, runningBundleIDs.contains(id) {
+            return true
+        }
+        return false
+    }
+
+    public func hasRunningApps(folder: FolderItem) -> Bool {
+        folder.apps.contains { isRunning(app: $0) }
+    }
 
     public func scanAppsIfNeeded() {
         guard !hasLoaded else { return }
