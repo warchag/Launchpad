@@ -30,7 +30,7 @@ public struct SettingsView: View {
 
             // Footer
             HStack {
-                Button("Reset to Defaults") {
+                Button("คืนค่าเริ่มต้น") {
                     settings.resetToDefaults()
                 }
                 .buttonStyle(.plain)
@@ -39,7 +39,7 @@ public struct SettingsView: View {
 
                 Spacer()
 
-                Button("Done") {
+                Button("เสร็จสิ้น") {
                     stopRecording()
                     SettingsWindowController.shared.close()
                 }
@@ -60,30 +60,30 @@ public struct SettingsView: View {
         VStack(alignment: .leading, spacing: 22) {
             // Icon Organization & Sorting
             VStack(alignment: .leading, spacing: 10) {
-                Text("Icon Sorting & Organization")
+                Text("การจัดเรียงไอคอนและแอป")
                     .font(.headline)
 
                 Toggle(isOn: $settings.autoSortAlphabetically) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Auto-sort All Apps Alphabetically (A-Z)")
+                        Text("จัดเรียงแอปทั้งหมดตามตัวอักษร (ก-ฮ / A-Z) อัตโนมัติ")
                             .font(.system(size: 13, weight: .medium))
                         Text(settings.autoSortAlphabetically
-                             ? "Apps and folders automatically stay sorted A-Z. When removed from a folder, an app returns to its alphabetical slot."
-                             : "Classic mode: When removed from a folder, an app is placed right next to that folder on the current page.")
+                             ? "แอปและโฟลเดอร์จะจัดเรียงตามลำดับ ก-ฮ / A-Z เสมอ เมื่อนำแอปออกจากโฟลเดอร์จะกลับเข้าตำแหน่งตามตัวอักษรทันที"
+                             : "โหมดคลาสสิก: เมื่อดึงแอปออกจากโฟลเดอร์ แอปจะวางอยู่ข้างๆ โฟลเดอร์นั้นในหน้าปัจจุบัน")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                 }
 
                 HStack(spacing: 12) {
-                    Button("Sort All Icons A-Z Now") {
+                    Button("จัดเรียง ก-ฮ ทันที") {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                             AppScanner.shared.sortAlphabetically()
                         }
                     }
                     .font(.system(size: 12))
 
-                    Button("Sync Groups from macOS") {
+                    Button("ซิงค์โฟลเดอร์จาก macOS") {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                             AppScanner.shared.importSystemGroups()
                         }
@@ -94,7 +94,7 @@ public struct SettingsView: View {
                 }
                 .padding(.top, 4)
 
-                Text("Sync Groups imports the native 'Other' / Utilities and system folders directly from macOS.")
+                Text("ซิงค์โฟลเดอร์เริ่มต้นจาก macOS เช่น โฟลเดอร์ 'Other' และโฟลเดอร์ยูทิลิตี้ของระบบ")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -107,7 +107,7 @@ public struct SettingsView: View {
             // Wallpaper Blur Intensity
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Wallpaper Blur Intensity")
+                    Text("ระดับความเบลอของภาพพื้นหลัง (Wallpaper Blur)")
                         .font(.headline)
                     Spacer()
                     Text("\(Int(settings.blurRadius)) px")
@@ -117,7 +117,7 @@ public struct SettingsView: View {
 
                 Slider(value: $settings.blurRadius, in: 15...85, step: 5)
 
-                Text("Controls how strongly your current desktop wallpaper is blurred.")
+                Text("ปรับระดับความเบลอของภาพวอลเปเปอร์หน้าจอปัจจุบัน")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -127,7 +127,7 @@ public struct SettingsView: View {
             // Background Dimming
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Background Darkening (Dimming)")
+                    Text("ความมืดของพื้นหลัง (Background Dimming)")
                         .font(.headline)
                     Spacer()
                     Text("\(Int(settings.backgroundOpacity * 100))%")
@@ -137,7 +137,7 @@ public struct SettingsView: View {
 
                 Slider(value: $settings.backgroundOpacity, in: 0.15...0.70, step: 0.05)
 
-                Text("Controls the darkness layer over your blurred wallpaper.")
+                Text("ปรับเลเยอร์ความมืดเพื่อให้มองเห็นไอคอนแอปได้อย่างคมชัด")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -227,9 +227,9 @@ public struct SettingsView: View {
             // Startup & Dock toggles
             Toggle(isOn: $settings.launchAtLogin) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Launch at Login")
+                    Text("เปิดใช้งานอัตโนมัติเมื่อเริ่มระบบ (Launch at Login)")
                         .font(.headline)
-                    Text("Automatically start Launchpad helper when you start your Mac.")
+                    Text("เปิดระบบ Launchpad ช่วยเหลืออัตโนมัติทุกครั้งเมื่อเปิดเครื่อง Mac")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -239,9 +239,9 @@ public struct SettingsView: View {
 
             Toggle(isOn: $settings.showDockIcon) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Keep Launchpad in Dock")
+                    Text("แสดงไอคอน Launchpad ไว้ใน Dock")
                         .font(.headline)
-                    Text("แสดงไอคอน Launchpad ไว้ใน Dock เพื่อให้คลิกเปิด/ปิดได้ตลอดเวลา")
+                    Text("ตรึงไอคอน Launchpad ไว้ใน Dock เพื่อให้คลิกเปิด/ปิดได้ตลอดเวลา")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -251,9 +251,9 @@ public struct SettingsView: View {
 
             Toggle(isOn: $settings.autoFocusSearch) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Auto-focus Search Field")
+                    Text("โฟกัสช่องค้นหาทันที (Auto-focus Search)")
                         .font(.headline)
-                    Text("Focuses the search bar immediately when Launchpad opens.")
+                    Text("สามารถพิมพ์ค้นหาชื่อแอปได้ทันทีเมื่อเปิดหน้า Launchpad")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -304,14 +304,14 @@ public struct SettingsView: View {
 
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("App Library Cache")
+                    Text("แคชรายการแอปพลิเคชัน")
                         .font(.headline)
-                    Text("Rescan /Applications and refresh newly installed apps.")
+                    Text("สแกนโฟลเดอร์ /Applications ใหม่เพื่ออัปเดตแอปที่เพิ่งติดตั้ง")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 Spacer()
-                Button("Refresh Now") {
+                Button("สแกนและรีเฟรชตอนนี้") {
                     AppScanner.shared.refreshApps()
                 }
             }
@@ -424,7 +424,7 @@ public struct SettingsView: View {
             .buttonStyle(.plain)
 
             if isRecordingShortcut {
-                Button("Cancel") {
+                Button("ยกเลิก") {
                     stopRecording()
                 }
                 .font(.system(size: 12))

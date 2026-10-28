@@ -77,22 +77,22 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
 
         let shortcut = AppSettings.shared.shortcutPreset
-        let toggleTitle = shortcut == "none" ? "Toggle Launchpad" : "Toggle Launchpad (\(AppSettings.shared.shortcutDisplayString))"
+        let toggleTitle = shortcut == "none" ? "เปิด/ปิด Launchpad" : "เปิด/ปิด Launchpad (\(AppSettings.shared.shortcutDisplayString))"
         let toggleItem = NSMenuItem(title: toggleTitle, action: #selector(toggleLaunchpadAction), keyEquivalent: "")
         toggleItem.target = self
         menu.addItem(toggleItem)
 
-        let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettingsAction), keyEquivalent: ",")
+        let settingsItem = NSMenuItem(title: "การตั้งค่า...", action: #selector(openSettingsAction), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
 
-        let refreshItem = NSMenuItem(title: "Refresh Applications", action: #selector(refreshAppsAction), keyEquivalent: "r")
+        let refreshItem = NSMenuItem(title: "รีเฟรชรายการแอปพลิเคชัน", action: #selector(refreshAppsAction), keyEquivalent: "r")
         refreshItem.target = self
         menu.addItem(refreshItem)
 
         menu.addItem(NSMenuItem.separator())
 
-        let quitItem = NSMenuItem(title: "Quit Launchpad", action: #selector(quitAction), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "ออกจาก Launchpad", action: #selector(quitAction), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
 

@@ -20,7 +20,7 @@ public final class SettingsWindowController: NSObject, NSWindowDelegate {
                 defer: false
             )
             win.center()
-            win.title = "Launchpad Settings"
+            win.title = "การตั้งค่า Launchpad"
             win.isReleasedWhenClosed = false
             win.delegate = self
             win.contentView = NSHostingView(rootView: SettingsView())

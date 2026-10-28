@@ -213,7 +213,7 @@ public struct LaunchpadOverlayView: View {
                                     .background(Circle().fill(Color.black.opacity(0.25)))
                             }
                             .buttonStyle(.plain)
-                            .help("Launchpad Settings")
+                            .help("การตั้งค่า Launchpad")
                         }
                         .padding(.trailing, 36)
                     }
