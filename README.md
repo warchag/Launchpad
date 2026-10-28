@@ -6,11 +6,23 @@
 
 ## 📸 ภาพตัวอย่างหน้าจอ (Screenshots)
 
+### 1. หน้าจอ Launchpad หลัก (FullScreen Glassmorphism & 7×5 Grid)
 ![Launchpad Screenshot 1](screenshot/screenshot.png)
 
 <br/>
 
+### 2. แถบแอปโปรดและเปิดล่าสุด (Favorites & Recent Apps Dock)
 ![Launchpad Screenshot 2](screenshot/Screenshot1.png)
+
+<br/>
+
+### 3. หน้าต่างการตั้งค่า 2 ภาษา (Bilingual Settings - TH & EN)
+![Launchpad Settings](screenshot/Screenshot2.png)
+
+<br/>
+
+### 4. ระบบ PromptPay QR Code สำหรับโดเนทสนับสนุนผู้พัฒนา
+![Launchpad PromptPay QR Code](screenshot/Screenshot3.png)
 
 ---
 
