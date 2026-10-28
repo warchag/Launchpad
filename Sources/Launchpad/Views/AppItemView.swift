@@ -144,16 +144,6 @@ public struct AppItemView: View {
             }) {
                 Label("Hide from Launchpad", systemImage: "eye.slash")
             }
-
-            Divider()
-
-            Button(role: .destructive, action: {
-                try? FileManager.default.trashItem(at: app.url, resultingItemURL: nil)
-                HapticManager.shared.playAction()
-                AppScanner.shared.refreshApps()
-            }) {
-                Label("Move to Trash", systemImage: "trash")
-            }
         }
     }
 }

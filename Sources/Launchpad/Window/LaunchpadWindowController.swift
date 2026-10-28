@@ -247,11 +247,6 @@ public final class LaunchpadWindowController: NSObject, NSWindowDelegate {
                     return nil
                 }
 
-                // KeyCode 49 is Spacebar -> Quick Look Preview
-                if event.keyCode == 49 && AppScanner.shared.searchText.isEmpty {
-                    NotificationCenter.default.post(name: .launchpadToggleQuickLook, object: nil)
-                    return nil
-                }
                 // Arrow keys for paging when search text is empty
                 if AppScanner.shared.searchText.isEmpty {
                     if event.keyCode == 123 { // Left Arrow
@@ -289,5 +284,4 @@ public final class LaunchpadWindowController: NSObject, NSWindowDelegate {
 extension Notification.Name {
     public static let launchpadPreviousPage = Notification.Name("launchpadPreviousPage")
     public static let launchpadNextPage = Notification.Name("launchpadNextPage")
-    public static let launchpadToggleQuickLook = Notification.Name("launchpadToggleQuickLook")
 }

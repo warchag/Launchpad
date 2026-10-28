@@ -26,10 +26,6 @@ public struct LaunchpadOverlayView: View {
     @State private var currentHoverTargetId: String? = nil
     @State private var lastEdgeSwitchTime: Date = .distantPast
 
-    // Quick Look State
-    @State private var hoveredApp: AppItem? = nil
-    @State private var quickLookApp: AppItem? = nil
-
     private var pageSize: Int { settings.pageSize }
 
     private var columns: [GridItem] {
@@ -116,11 +112,7 @@ public struct LaunchpadOverlayView: View {
                                 handleSearchSubmit()
                             },
                             onEscape: {
-                                if quickLookApp != nil {
-                                    withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
-                                        quickLookApp = nil
-                                    }
-                                } else if isEditMode {
+                                if isEditMode {
                                     withAnimation { isEditMode = false }
                                 } else if scanner.activeFolder != nil {
                                     withAnimation(.spring(response: 0.25)) {
@@ -257,25 +249,6 @@ public struct LaunchpadOverlayView: View {
                     )
                     .zIndex(1000)
                 }
-
-                // 8. Quick Look Preview Modal
-                if let previewApp = quickLookApp {
-                    AppQuickLookView(
-                        app: previewApp,
-                        onClose: {
-                            withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
-                                quickLookApp = nil
-                            }
-                            HapticManager.shared.playClick()
-                        },
-                        onLaunch: {
-                            quickLookApp = nil
-                            launchApp(previewApp)
-                        }
-                    )
-                    .transition(.scale(scale: 0.94).combined(with: .opacity))
-                    .zIndex(2000)
-                }
             }
             .coordinateSpace(name: "LaunchpadGridSpace")
             .onPreferenceChange(ItemFramePreferenceKey.self) { frames in
@@ -300,17 +273,6 @@ public struct LaunchpadOverlayView: View {
                 if currentPage < pages.count - 1 {
                     currentPage += 1
                     HapticManager.shared.playPage()
-                }
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .launchpadToggleQuickLook)) { _ in
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                if quickLookApp != nil {
-                    quickLookApp = nil
-                    HapticManager.shared.playClick()
-                } else if let target = hoveredApp {
-                    quickLookApp = target
-                    HapticManager.shared.playClick()
                 }
             }
         }
@@ -435,13 +397,6 @@ public struct LaunchpadOverlayView: View {
                                             scanner.rebuildLaunchItems()
                                         }
                                     )
-                                    .onHover { hovering in
-                                        if hovering {
-                                            hoveredApp = app
-                                        } else if hoveredApp?.id == app.id {
-                                            hoveredApp = nil
-                                        }
-                                    }
                                 case .folder(let folder):
                                     FolderItemView(
                                         folder: folder,
@@ -604,13 +559,6 @@ public struct LaunchpadOverlayView: View {
                             isBeingDragged: false,
                             isEditMode: false
                         )
-                        .onHover { hovering in
-                            if hovering {
-                                hoveredApp = app
-                            } else if hoveredApp?.id == app.id {
-                                hoveredApp = nil
-                            }
-                        }
                         .onTapGesture {
                             launchApp(app)
                         }
