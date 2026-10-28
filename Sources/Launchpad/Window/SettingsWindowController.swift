@@ -14,13 +14,13 @@ public final class SettingsWindowController: NSObject, NSWindowDelegate {
     public func show() {
         if window == nil {
             let win = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 560, height: 600),
+                contentRect: NSRect(x: 0, y: 0, width: 580, height: 640),
                 styleMask: [.titled, .closable, .miniaturizable],
                 backing: .buffered,
                 defer: false
             )
             win.center()
-            win.title = "การตั้งค่า Launchpad"
+            win.title = AppSettings.shared.appLanguage == .thai ? "การตั้งค่า Launchpad" : "Launchpad Settings"
             win.isReleasedWhenClosed = false
             win.delegate = self
             win.contentView = NSHostingView(rootView: SettingsView())
@@ -28,6 +28,7 @@ public final class SettingsWindowController: NSObject, NSWindowDelegate {
         }
 
         guard let win = window else { return }
+        win.title = AppSettings.shared.appLanguage == .thai ? "การตั้งค่า Launchpad" : "Launchpad Settings"
         win.center()
         win.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)

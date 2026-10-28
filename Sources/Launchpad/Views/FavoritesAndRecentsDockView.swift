@@ -199,3 +199,4 @@ private struct DockAppButton: View {
         }
     }
 }
+

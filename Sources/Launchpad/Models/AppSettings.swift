@@ -12,6 +12,20 @@ public final class AppSettings: ObservableObject {
     public static let standardGridColumns: Int = 7
     public static let standardGridRows: Int = 5
 
+    public enum AppLanguage: String, CaseIterable, Identifiable {
+        case thai = "th"
+        case english = "en"
+
+        public var id: String { rawValue }
+
+        public var displayName: String {
+            switch self {
+            case .thai: return "ภาษาไทย (TH)"
+            case .english: return "English (EN)"
+            }
+        }
+    }
+
     // Key constants
     private enum Keys {
         static let iconSize = "app_icon_size"
@@ -33,6 +47,11 @@ public final class AppSettings: ObservableObject {
         static let showRecentApps = "app_show_recent_apps"
         static let enableHapticFeedback = "app_enable_haptic_feedback"
         static let hotCorner = "app_hot_corner"
+        static let appLanguage = "app_language"
+    }
+
+    @Published public var appLanguage: AppLanguage {
+        didSet { UserDefaults.standard.set(appLanguage.rawValue, forKey: Keys.appLanguage) }
     }
 
     // 1. Icon & Grid Settings
@@ -311,7 +330,8 @@ public final class AppSettings: ObservableObject {
             Keys.showRecentApps: true,
             Keys.recentAppPaths: [],
             Keys.favoriteAppPaths: [],
-            Keys.hiddenAppPaths: []
+            Keys.hiddenAppPaths: [],
+            Keys.appLanguage: "th"
         ])
 
         self.autoSortAlphabetically = defaults.bool(forKey: Keys.autoSortAlphabetically)
@@ -349,6 +369,8 @@ public final class AppSettings: ObservableObject {
             defaults.set(defaultsSeed, forKey: Keys.favoriteAppPaths)
         }
         self.hiddenAppPaths = defaults.stringArray(forKey: Keys.hiddenAppPaths) ?? []
+        let savedLang = defaults.string(forKey: Keys.appLanguage) ?? "th"
+        self.appLanguage = AppLanguage(rawValue: savedLang) ?? .thai
 
         // Migrate old F-key presets to "none" (dock click)
         var savedPreset = defaults.string(forKey: Keys.shortcutPreset) ?? "none"
