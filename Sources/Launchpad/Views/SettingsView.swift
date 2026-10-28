@@ -70,55 +70,6 @@ public struct SettingsView: View {
     // 1. Layout & Icons Tab
     private var layoutSection: some View {
         VStack(alignment: .leading, spacing: 22) {
-            // Native macOS Launchpad Icon Standard Badge
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("App Icon Size")
-                        .font(.headline)
-                    Text("Icons use the native macOS Launchpad standard (large & high resolution).")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-                Text("Native Large (82 px)")
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(Capsule().fill(Color.accentColor.opacity(0.15)))
-                    .foregroundColor(.accentColor)
-            }
-
-            Divider()
-
-            // Grid Layout Preset
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Grid Layout (Columns × Rows)")
-                    .font(.headline)
-
-                Picker("", selection: Binding(
-                    get: { "\(settings.gridColumns)x\(settings.gridRows)" },
-                    set: { val in
-                        let parts = val.components(separatedBy: "x")
-                        if parts.count == 2, let c = Int(parts[0]), let r = Int(parts[1]) {
-                            settings.gridColumns = c
-                            settings.gridRows = r
-                        }
-                    }
-                )) {
-                    Text("6 × 4 (24 Apps per page - Spacious)").tag("6x4")
-                    Text("7 × 5 (35 Apps per page - Classic macOS)").tag("7x5")
-                    Text("8 × 5 (40 Apps per page - Compact)").tag("8x5")
-                    Text("8 × 6 (48 Apps per page - Dense)").tag("8x6")
-                }
-                .pickerStyle(.radioGroup)
-
-                Text("Determines how many applications fit on each Launchpad page.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            Divider()
-
             // Icon Organization & Sorting
             VStack(alignment: .leading, spacing: 10) {
                 Text("Icon Sorting & Organization")
@@ -201,21 +152,6 @@ public struct SettingsView: View {
                 Text("Controls the darkness layer over your blurred wallpaper.")
                     .font(.caption)
                     .foregroundColor(.secondary)
-            }
-
-            Divider()
-
-            // Blur Style
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Frosted Glass Blur Style")
-                    .font(.headline)
-
-                Picker("", selection: $settings.blurMaterialIndex) {
-                    Text("FullScreen UI (Apple Standard Vibrant)").tag(0)
-                    Text("HUD Window (Deep Contrast Blur)").tag(1)
-                    Text("Translucent Glass (Lighter Accent)").tag(2)
-                }
-                .pickerStyle(.radioGroup)
             }
         }
     }

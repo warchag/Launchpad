@@ -9,6 +9,8 @@ public final class AppSettings: ObservableObject {
 
     // Standard native macOS Launchpad icon size (large and crisp)
     public static let standardIconSize: CGFloat = 82.0
+    public static let standardGridColumns: Int = 7
+    public static let standardGridRows: Int = 5
 
     // Key constants
     private enum Keys {
@@ -277,15 +279,19 @@ public final class AppSettings: ObservableObject {
 
         self.autoSortAlphabetically = defaults.bool(forKey: Keys.autoSortAlphabetically)
 
-        // Native macOS Launchpad icon size standard
+        // Native macOS Launchpad standard: 7 columns × 5 rows, FullScreen UI blur, 82px icons
         self.iconSize = AppSettings.standardIconSize
-        defaults.set(Double(AppSettings.standardIconSize), forKey: Keys.iconSize)
+        self.gridColumns = AppSettings.standardGridColumns
+        self.gridRows = AppSettings.standardGridRows
+        self.blurMaterialIndex = 0
 
-        self.gridColumns = defaults.integer(forKey: Keys.gridColumns)
-        self.gridRows = defaults.integer(forKey: Keys.gridRows)
+        defaults.set(Double(AppSettings.standardIconSize), forKey: Keys.iconSize)
+        defaults.set(AppSettings.standardGridColumns, forKey: Keys.gridColumns)
+        defaults.set(AppSettings.standardGridRows, forKey: Keys.gridRows)
+        defaults.set(0, forKey: Keys.blurMaterial)
+
         self.backgroundOpacity = defaults.double(forKey: Keys.backgroundOpacity)
         self.blurRadius = CGFloat(defaults.double(forKey: Keys.blurRadius))
-        self.blurMaterialIndex = defaults.integer(forKey: Keys.blurMaterial)
         self.autoFocusSearch = defaults.bool(forKey: Keys.autoFocusSearch)
         self.launchAtLogin = defaults.bool(forKey: Keys.launchAtLogin)
         self.showDockIcon = defaults.bool(forKey: Keys.showDockIcon)
@@ -310,8 +316,8 @@ public final class AppSettings: ObservableObject {
     public func resetToDefaults() {
         autoSortAlphabetically = false
         iconSize = AppSettings.standardIconSize
-        gridColumns = 7
-        gridRows = 5
+        gridColumns = AppSettings.standardGridColumns
+        gridRows = AppSettings.standardGridRows
         backgroundOpacity = 0.38
         blurRadius = 45.0
         blurMaterialIndex = 0
