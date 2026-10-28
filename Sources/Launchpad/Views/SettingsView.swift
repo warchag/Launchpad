@@ -4,7 +4,6 @@ import Carbon
 public struct SettingsView: View {
     @ObservedObject var settings: AppSettings = .shared
     @ObservedObject var scanner: AppScanner = .shared
-    @State private var selectedTab: Int = 0
     @State private var isRecordingShortcut: Bool = false
     @State private var shortcutMonitor: Any?
 
@@ -12,28 +11,17 @@ public struct SettingsView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // Header Tabs
-            Picker("", selection: $selectedTab) {
-                Label("Layout & Icons", systemImage: "square.grid.3x3.fill").tag(0)
-                Label("Appearance", systemImage: "sparkles").tag(1)
-                Label("General & Features", systemImage: "gearshape.fill").tag(2)
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
-            .padding(.bottom, 16)
-
-            Divider()
-
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    if selectedTab == 0 {
-                        layoutSection
-                    } else if selectedTab == 1 {
-                        appearanceSection
-                    } else {
-                        generalSection
-                    }
+                VStack(alignment: .leading, spacing: 22) {
+                    generalSection
+
+                    Divider()
+
+                    appearanceSection
+
+                    Divider()
+
+                    layoutSection
                 }
                 .padding(24)
             }
@@ -61,7 +49,7 @@ public struct SettingsView: View {
             .padding(.vertical, 14)
             .background(Color(NSColor.windowBackgroundColor))
         }
-        .frame(width: 560, height: 560)
+        .frame(width: 560, height: 600)
         .onDisappear {
             stopRecording()
         }
