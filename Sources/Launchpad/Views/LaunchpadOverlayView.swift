@@ -28,8 +28,22 @@ public struct LaunchpadOverlayView: View {
 
     private var pageSize: Int { settings.pageSize }
 
-    private var columns: [GridItem] {
-        Array(repeating: GridItem(.fixed(settings.iconSize + 36), spacing: 18), count: settings.gridColumns)
+    private func responsiveColumns(for screenWidth: CGFloat) -> [GridItem] {
+        let cols = max(1, settings.gridColumns)
+        let usableWidth = max(720, screenWidth - 140)
+        let baseItemWidth = settings.iconSize + 36
+        let maxSpacing = (usableWidth - baseItemWidth * CGFloat(cols)) / CGFloat(max(1, cols - 1))
+        let colSpacing = max(10, min(32, floor(maxSpacing)))
+        return Array(repeating: GridItem(.fixed(baseItemWidth), spacing: colSpacing), count: cols)
+    }
+
+    private func responsiveRowSpacing(for screenHeight: CGFloat) -> CGFloat {
+        let rows = max(1, settings.gridRows)
+        let headerAndFooterHeight: CGFloat = settings.showRecentApps ? 250 : 185
+        let usableHeight = max(420, screenHeight - headerAndFooterHeight)
+        let itemHeight = settings.iconSize + 44
+        let rawSpacing = (usableHeight - itemHeight * CGFloat(rows)) / CGFloat(max(1, rows - 1))
+        return max(8, min(26, floor(rawSpacing)))
     }
 
     public init(scanner: AppScanner = .shared, onDismiss: @escaping () -> Void) {
@@ -62,7 +76,7 @@ public struct LaunchpadOverlayView: View {
     public var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // 1. Desktop Wallpaper Background Layer (Dynamic & Blurred)
+                // 1. Desktop Wallpaper Background Layer (Dynamic & Blurred, GPU Cached)
                 if let wallpaper = wallpaperManager.blurredWallpaper {
                     Image(nsImage: wallpaper)
                         .resizable()
@@ -71,6 +85,7 @@ public struct LaunchpadOverlayView: View {
                         .blur(radius: settings.blurRadius)
                         .scaleEffect(1.10)
                         .clipped()
+                        .drawingGroup()
                         .ignoresSafeArea()
                 } else {
                     VisualEffectView(material: settings.blurMaterial, blendingMode: .behindWindow)
@@ -153,14 +168,14 @@ public struct LaunchpadOverlayView: View {
                             ProgressView()
                                 .scaleEffect(1.3)
                                 .colorInvert()
-                            Text("Loading applications...")
+                            Text(settings.tr("กำลังโหลดรายการแอปพลิเคชัน...", "Loading applications..."))
                                 .font(.system(size: 15, weight: .medium, design: .rounded))
                                 .foregroundColor(.white.opacity(0.8))
                         }
                         .frame(maxHeight: .infinity)
                     } else if !scanner.searchText.isEmpty {
                         // Search Results Grid
-                        searchGridView
+                        searchGridView(geometry: geometry)
                     } else {
                         // Paginated Classic Grid with Drag-to-Group & Jiggle Edit Mode
                         paginatedGridView(geometry: geometry)
@@ -177,7 +192,7 @@ public struct LaunchpadOverlayView: View {
                                 currentPage: $currentPage
                             )
                         } else {
-                            Text("\(scanner.filteredApps.count) apps found")
+                            Text(settings.tr("พบ \(scanner.filteredApps.count) แอป", "\(scanner.filteredApps.count) apps found"))
                                 .font(.system(size: 12, weight: .medium, design: .rounded))
                                 .foregroundColor(.white.opacity(0.6))
                                 .padding(.horizontal, 14)
@@ -202,7 +217,10 @@ public struct LaunchpadOverlayView: View {
                                     .background(Circle().fill(isEditMode ? Color.white.opacity(0.3) : Color.black.opacity(0.25)))
                             }
                             .buttonStyle(.plain)
-                            .help(isEditMode ? "บันทึกและออกจากการจัดตำแหน่ง" : "จัดระเบียบไอคอน (สั่นดุ๊กดิ๊ก / ซ่อนแอพ)")
+                            .help(isEditMode
+                                ? settings.tr("บันทึกและออกจากการจัดตำแหน่ง", "Done editing")
+                                : settings.tr("จัดระเบียบไอคอน (สั่นดุ๊กดิ๊ก / ซ่อนแอป)", "Edit icons (Jiggle / Hide apps)")
+                            )
 
                             // Settings Button
                             Button(action: {
@@ -216,7 +234,7 @@ public struct LaunchpadOverlayView: View {
                                     .background(Circle().fill(Color.black.opacity(0.25)))
                             }
                             .buttonStyle(.plain)
-                            .help("การตั้งค่า Launchpad")
+                            .help(settings.tr("การตั้งค่า Launchpad", "Launchpad Settings"))
                         }
                         .padding(.trailing, 36)
                     }
@@ -263,6 +281,11 @@ public struct LaunchpadOverlayView: View {
             scanner.scanAppsIfNeeded()
             wallpaperManager.loadWallpaper()
         }
+        .onChange(of: pages.count) { _, newCount in
+            if currentPage >= newCount && newCount > 0 {
+                currentPage = newCount - 1
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .launchpadPreviousPage)) { _ in
             withAnimation(.spring(response: 0.36, dampingFraction: 0.88)) {
                 if currentPage > 0 {
@@ -297,7 +320,7 @@ public struct LaunchpadOverlayView: View {
                         HStack(spacing: 6) {
                             Image(systemName: cat.iconName)
                                 .font(.system(size: 11, weight: .semibold))
-                            Text(cat.displayName)
+                            Text(cat.localizedName)
                                 .font(.system(size: 12, weight: .medium, design: .rounded))
                         }
                         .padding(.horizontal, 12)
@@ -322,6 +345,8 @@ public struct LaunchpadOverlayView: View {
     // Paginated Grid View with direct touch/drag handling
     private func paginatedGridView(geometry: GeometryProxy) -> some View {
         let totalPages = max(1, pages.count)
+        let gridCols = responsiveColumns(for: geometry.size.width)
+        let rowSpacing = responsiveRowSpacing(for: geometry.size.height)
 
         return ZStack {
             // Background empty area tap catcher
@@ -340,7 +365,7 @@ public struct LaunchpadOverlayView: View {
                 if abs(pageIndex - currentPage) <= 1 {
                     let pageItems = pageIndex < pages.count ? pages[pageIndex] : []
 
-                    LazyVGrid(columns: columns, spacing: 16) {
+                    LazyVGrid(columns: gridCols, spacing: rowSpacing) {
                         ForEach(pageItems) { item in
                             let isBeingDragged = draggingItem?.id == item.id
                             let isTarget = currentHoverTargetId == item.id
@@ -442,18 +467,35 @@ public struct LaunchpadOverlayView: View {
                                             }
                                         } else {
                                             // Dropped
-                                            if let targetId = currentHoverTargetId, case .app(let draggedApp) = item {
-                                                if targetId.hasPrefix("app:") {
-                                                    let targetPath = String(targetId.dropFirst(4))
-                                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                                        scanner.createFolder(draggedPath: draggedApp.path, targetPath: targetPath)
+                                            if let targetId = currentHoverTargetId {
+                                                if isEditMode {
+                                                    // In Edit / Jiggle mode: reorder apps & folders
+                                                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                                                        scanner.moveItem(fromId: item.id, toId: targetId)
                                                     }
                                                     HapticManager.shared.playAction()
-                                                } else if targetId.hasPrefix("folder:") {
-                                                    let uuidString = String(targetId.dropFirst(7))
-                                                    if let folderUuid = UUID(uuidString: uuidString) {
-                                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                                            scanner.addAppToFolder(appPath: draggedApp.path, folderId: folderUuid)
+                                                } else {
+                                                    switch item {
+                                                    case .app(let draggedApp):
+                                                        if targetId.hasPrefix("app:") {
+                                                            let targetPath = String(targetId.dropFirst(4))
+                                                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                                                scanner.createFolder(draggedPath: draggedApp.path, targetPath: targetPath)
+                                                            }
+                                                            HapticManager.shared.playAction()
+                                                        } else if targetId.hasPrefix("folder:") {
+                                                            let uuidString = String(targetId.dropFirst(7))
+                                                            if let folderUuid = UUID(uuidString: uuidString) {
+                                                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                                                    scanner.addAppToFolder(appPath: draggedApp.path, folderId: folderUuid)
+                                                                }
+                                                                HapticManager.shared.playAction()
+                                                            }
+                                                        }
+                                                    case .folder:
+                                                        // Dragging a folder onto another position reorders it
+                                                        withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                                                            scanner.moveItem(fromId: item.id, toId: targetId)
                                                         }
                                                         HapticManager.shared.playAction()
                                                     }
@@ -499,24 +541,27 @@ public struct LaunchpadOverlayView: View {
     }
 
     // Search Results Grid View
-    private var searchGridView: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            if scanner.filteredApps.isEmpty {
+    private func searchGridView(geometry: GeometryProxy) -> some View {
+        let gridCols = responsiveColumns(for: geometry.size.width)
+        let results = scanner.filteredApps
+
+        return ScrollView(.vertical, showsIndicators: false) {
+            if results.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 36))
                         .foregroundColor(.white.opacity(0.4))
-                    Text("No results for \"\(scanner.searchText)\"")
+                    Text(settings.tr("ไม่พบแอปที่ตรงกับ \"\(scanner.searchText)\"", "No results for \"\(scanner.searchText)\""))
                         .font(.system(size: 16, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.7))
                 }
                 .padding(.top, 80)
             } else {
-                LazyVGrid(columns: columns, spacing: 20) {
-                    ForEach(scanner.filteredApps) { app in
+                LazyVGrid(columns: gridCols, spacing: 20) {
+                    ForEach(Array(results.enumerated()), id: \.element.id) { index, app in
                         AppItemView(
                             app: app,
-                            isHighlightedTarget: false,
+                            isHighlightedTarget: index == scanner.selectedSearchIndex,
                             isBeingDragged: false,
                             isEditMode: false
                         )
@@ -540,9 +585,10 @@ public struct LaunchpadOverlayView: View {
     }
 
     private func handleSearchSubmit() {
-        if let firstApp = scanner.filteredApps.first {
-            launchApp(firstApp)
-        }
+        let results = scanner.filteredApps
+        guard !results.isEmpty else { return }
+        let safeIndex = min(max(0, scanner.selectedSearchIndex), results.count - 1)
+        launchApp(results[safeIndex])
     }
 
     private func launchApp(_ app: AppItem) {

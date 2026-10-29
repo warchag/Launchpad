@@ -107,5 +107,26 @@ public struct FolderItemView: View {
         .onChange(of: isEditMode) { _, newValue in
             isWobbling = newValue
         }
+        .contextMenu {
+            Button(action: {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                    scanner.activeFolder = folder
+                }
+                HapticManager.shared.playClick()
+            }) {
+                Label(settings.tr("เปิดโฟลเดอร์", "Open Folder"), systemImage: "folder")
+            }
+
+            Divider()
+
+            Button(action: {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
+                    scanner.ungroupFolder(folderId: folder.id)
+                }
+                HapticManager.shared.playAction()
+            }) {
+                Label(settings.tr("สลายกลุ่มโฟลเดอร์ (Ungroup)", "Ungroup Folder"), systemImage: "rectangle.grid.2x2")
+            }
+        }
     }
 }

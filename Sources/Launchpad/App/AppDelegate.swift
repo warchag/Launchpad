@@ -75,24 +75,38 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showStatusMenu() {
         let menu = NSMenu()
+        let settings = AppSettings.shared
 
-        let shortcut = AppSettings.shared.shortcutPreset
-        let toggleTitle = shortcut == "none" ? "เปิด/ปิด Launchpad" : "เปิด/ปิด Launchpad (\(AppSettings.shared.shortcutDisplayString))"
+        let shortcut = settings.shortcutPreset
+        let toggleBase = settings.tr("เปิด/ปิด Launchpad", "Toggle Launchpad")
+        let toggleTitle = shortcut == "none" ? toggleBase : "\(toggleBase) (\(settings.shortcutDisplayString))"
         let toggleItem = NSMenuItem(title: toggleTitle, action: #selector(toggleLaunchpadAction), keyEquivalent: "")
         toggleItem.target = self
         menu.addItem(toggleItem)
 
-        let settingsItem = NSMenuItem(title: "การตั้งค่า...", action: #selector(openSettingsAction), keyEquivalent: ",")
+        let settingsItem = NSMenuItem(
+            title: settings.tr("การตั้งค่า...", "Settings..."),
+            action: #selector(openSettingsAction),
+            keyEquivalent: ","
+        )
         settingsItem.target = self
         menu.addItem(settingsItem)
 
-        let refreshItem = NSMenuItem(title: "รีเฟรชรายการแอปพลิเคชัน", action: #selector(refreshAppsAction), keyEquivalent: "r")
+        let refreshItem = NSMenuItem(
+            title: settings.tr("รีเฟรชรายการแอปพลิเคชัน", "Refresh Applications"),
+            action: #selector(refreshAppsAction),
+            keyEquivalent: "r"
+        )
         refreshItem.target = self
         menu.addItem(refreshItem)
 
         menu.addItem(NSMenuItem.separator())
 
-        let quitItem = NSMenuItem(title: "ออกจาก Launchpad", action: #selector(quitAction), keyEquivalent: "q")
+        let quitItem = NSMenuItem(
+            title: settings.tr("ออกจาก Launchpad", "Quit Launchpad"),
+            action: #selector(quitAction),
+            keyEquivalent: "q"
+        )
         quitItem.target = self
         menu.addItem(quitItem)
 

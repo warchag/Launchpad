@@ -9,6 +9,7 @@ public struct AppItemView: View {
     public var isBeingDragged: Bool = false
     public var isEditMode: Bool = false
     public var onHide: (() -> Void)? = nil
+    public var onRemoveFromFolder: (() -> Void)? = nil
 
     @State private var isWobbling: Bool = false
 
@@ -17,13 +18,15 @@ public struct AppItemView: View {
         isHighlightedTarget: Bool = false,
         isBeingDragged: Bool = false,
         isEditMode: Bool = false,
-        onHide: (() -> Void)? = nil
+        onHide: (() -> Void)? = nil,
+        onRemoveFromFolder: (() -> Void)? = nil
     ) {
         self.app = app
         self.isHighlightedTarget = isHighlightedTarget
         self.isBeingDragged = isBeingDragged
         self.isEditMode = isEditMode
         self.onHide = onHide
+        self.onRemoveFromFolder = onRemoveFromFolder
     }
 
     public var body: some View {
@@ -123,9 +126,9 @@ public struct AppItemView: View {
                 settings.toggleFavorite(path: app.path)
             }) {
                 if settings.isFavorite(path: app.path) {
-                    Label("ถอนหมุดออกจากแอปโปรด (Unpin)", systemImage: "star.slash")
+                    Label(settings.tr("ถอนหมุดออกจากแอปโปรด", "Remove from Favorites"), systemImage: "star.slash")
                 } else {
-                    Label("ปักหมุดเป็นแอปโปรด (Pin to Favorites)", systemImage: "star")
+                    Label(settings.tr("ปักหมุดเป็นแอปโปรด", "Pin to Favorites"), systemImage: "star")
                 }
             }
 
@@ -134,7 +137,7 @@ public struct AppItemView: View {
             Button(action: {
                 NSWorkspace.shared.activateFileViewerSelecting([app.url])
             }) {
-                Label("Show in Finder", systemImage: "folder")
+                Label(settings.tr("แสดงใน Finder", "Show in Finder"), systemImage: "folder")
             }
 
             Button(action: {
@@ -142,7 +145,29 @@ public struct AppItemView: View {
                 NSPasteboard.general.setString(app.path, forType: .string)
                 HapticManager.shared.playClick()
             }) {
-                Label("Copy Path", systemImage: "doc.on.doc")
+                Label(settings.tr("คัดลอกที่อยู่ไฟล์ (Path)", "Copy Path"), systemImage: "doc.on.doc")
+            }
+
+            if let onRemoveFromFolder = onRemoveFromFolder {
+                Divider()
+
+                Button(action: {
+                    HapticManager.shared.playAction()
+                    onRemoveFromFolder()
+                }) {
+                    Label(settings.tr("นำออกจากโฟลเดอร์", "Remove from Folder"), systemImage: "folder.badge.minus")
+                }
+            }
+
+            if scanner.isRunning(app: app) {
+                Divider()
+
+                Button(action: {
+                    HapticManager.shared.playAction()
+                    scanner.quitApp(app)
+                }) {
+                    Label(settings.tr("ปิดแอปพลิเคชัน (\(app.name))", "Quit \(app.name)"), systemImage: "xmark.circle")
+                }
             }
 
             Divider()
@@ -155,7 +180,7 @@ public struct AppItemView: View {
                     settings.hideApp(path: app.path)
                 }
             }) {
-                Label("Hide from Launchpad", systemImage: "eye.slash")
+                Label(settings.tr("ซ่อนจาก Launchpad", "Hide from Launchpad"), systemImage: "eye.slash")
             }
         }
     }

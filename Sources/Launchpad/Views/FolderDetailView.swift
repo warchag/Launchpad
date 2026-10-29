@@ -1,6 +1,13 @@
 import AppKit
 import SwiftUI
 
+private struct FolderAppFramePreferenceKey: PreferenceKey {
+    static let defaultValue: [String: CGRect] = [:]
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { $1 })
+    }
+}
+
 public struct FolderDetailView: View {
     @ObservedObject var folder: FolderItem
     @ObservedObject var scanner: AppScanner = .shared
@@ -12,6 +19,8 @@ public struct FolderDetailView: View {
     @State private var dragPosition: CGPoint = .zero
     @State private var isOutsideFolder: Bool = false
     @State private var folderBoxRect: CGRect = .zero
+    @State private var appFrames: [String: CGRect] = [:]
+    @State private var hoverTargetAppPath: String? = nil
 
     private var columnCount: Int {
         let count = folder.apps.count
@@ -62,7 +71,7 @@ public struct FolderDetailView: View {
                         HStack(spacing: 10) {
                             Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
                                 .font(.system(size: 16, weight: .semibold))
-                            Text("ปล่อยตรงนี้เพื่อนำออกจากกลุ่ม")
+                            Text(settings.tr("ปล่อยตรงนี้เพื่อนำออกจากกลุ่ม", "Drop here to remove from folder"))
                                 .font(.system(size: 15, weight: .medium, design: .rounded))
                         }
                         .foregroundColor(.white)
@@ -86,7 +95,7 @@ public struct FolderDetailView: View {
                         Spacer()
 
                         // Editable Folder Title
-                        TextField("ชื่อโฟลเดอร์", text: $folder.name)
+                        TextField(settings.tr("ชื่อโฟลเดอร์", "Folder Name"), text: $folder.name)
                             .textFieldStyle(.plain)
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
@@ -104,6 +113,27 @@ public struct FolderDetailView: View {
 
                         Spacer()
                     }
+                    .overlay(alignment: .leading) {
+                        Button(action: {
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
+                                scanner.ungroupFolder(folderId: folder.id)
+                            }
+                            HapticManager.shared.playAction()
+                        }) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "rectangle.grid.2x2")
+                                    .font(.system(size: 10.5, weight: .semibold))
+                                Text(settings.tr("สลายกลุ่ม", "Ungroup"))
+                                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                            }
+                            .foregroundColor(.white.opacity(0.75))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Capsule().fill(Color.white.opacity(0.15)))
+                        }
+                        .buttonStyle(.plain)
+                        .help(settings.tr("สลายกลุ่มโฟลเดอร์และนำแอปทั้งหมดออกมา", "Ungroup folder and move all apps out"))
+                    }
                     .overlay(alignment: .trailing) {
                         Button(action: onClose) {
                             Image(systemName: "xmark")
@@ -113,7 +143,7 @@ public struct FolderDetailView: View {
                                 .background(Circle().fill(Color.white.opacity(0.18)))
                         }
                         .buttonStyle(.plain)
-                        .help("ปิดโฟลเดอร์ (Esc)")
+                        .help(settings.tr("ปิดโฟลเดอร์ (Esc)", "Close Folder (Esc)"))
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
@@ -123,13 +153,27 @@ public struct FolderDetailView: View {
                         LazyVGrid(columns: columns, spacing: 20) {
                             ForEach(folder.apps) { app in
                                 let isBeingDragged = draggingApp?.path == app.path
+                                let isTarget = hoverTargetAppPath == app.path
 
                                 AppItemView(
                                     app: app,
-                                    isHighlightedTarget: false,
-                                    isBeingDragged: isBeingDragged
+                                    isHighlightedTarget: isTarget,
+                                    isBeingDragged: isBeingDragged,
+                                    onRemoveFromFolder: {
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                            scanner.removeAppFromFolder(appPath: app.path, folderId: folder.id)
+                                        }
+                                    }
                                 )
                                 .opacity(isBeingDragged ? 0.25 : 1.0)
+                                .background(
+                                    GeometryReader { geo in
+                                        Color.clear.preference(
+                                            key: FolderAppFramePreferenceKey.self,
+                                            value: [app.path: geo.frame(in: .named("FolderDetailSpace"))]
+                                        )
+                                    }
+                                )
                                 .gesture(
                                     DragGesture(minimumDistance: 0, coordinateSpace: .named("FolderDetailSpace"))
                                         .onChanged { value in
@@ -137,13 +181,27 @@ public struct FolderDetailView: View {
                                             if dist >= 6 {
                                                 if draggingApp == nil {
                                                     draggingApp = app
+                                                    HapticManager.shared.playClick()
                                                 }
                                                 dragPosition = value.location
 
                                                 // Check if drag position is outside folder card
                                                 let expandedBounds = folderBoxRect.insetBy(dx: -30, dy: -30)
+                                                let outside = !expandedBounds.contains(value.location)
                                                 withAnimation(.spring(response: 0.2)) {
-                                                    isOutsideFolder = !expandedBounds.contains(value.location)
+                                                    isOutsideFolder = outside
+                                                }
+
+                                                if !outside {
+                                                    if let targetPath = appFrames.first(where: { key, rect in
+                                                        key != app.path && rect.contains(value.location)
+                                                    })?.key {
+                                                        hoverTargetAppPath = targetPath
+                                                    } else {
+                                                        hoverTargetAppPath = nil
+                                                    }
+                                                } else {
+                                                    hoverTargetAppPath = nil
                                                 }
                                             }
                                         }
@@ -157,11 +215,19 @@ public struct FolderDetailView: View {
                                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                                                     scanner.removeAppFromFolder(appPath: app.path, folderId: folder.id)
                                                 }
+                                                HapticManager.shared.playAction()
+                                            } else if let targetPath = hoverTargetAppPath {
+                                                // Drop onto another app inside folder -> reorder
+                                                withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                                                    scanner.moveAppInFolder(folderId: folder.id, fromPath: app.path, toPath: targetPath)
+                                                }
+                                                HapticManager.shared.playAction()
                                             }
 
                                             withAnimation(.spring(response: 0.25)) {
                                                 draggingApp = nil
                                                 isOutsideFolder = false
+                                                hoverTargetAppPath = nil
                                             }
                                         }
                                 )
@@ -174,9 +240,12 @@ public struct FolderDetailView: View {
 
                     // Footer Hint
                     HStack(spacing: 8) {
-                        Text("\(folder.apps.count) แอพ • ลากไอคอนออกไปข้างนอกเพื่อนำออกจากกลุ่ม")
-                            .font(.system(size: 11.5, weight: .regular, design: .rounded))
-                            .foregroundColor(.white.opacity(0.65))
+                        Text(settings.tr(
+                            "\(folder.apps.count) แอป • ลากไอคอนออกไปข้างนอกเพื่อนำออกจากกลุ่ม",
+                            "\(folder.apps.count) apps • Drag an icon outside to remove from folder"
+                        ))
+                        .font(.system(size: 11.5, weight: .regular, design: .rounded))
+                        .foregroundColor(.white.opacity(0.65))
                     }
                     .padding(.bottom, 16)
                 }
@@ -231,6 +300,9 @@ public struct FolderDetailView: View {
                 }
             }
             .coordinateSpace(name: "FolderDetailSpace")
+            .onPreferenceChange(FolderAppFramePreferenceKey.self) { frames in
+                self.appFrames = frames
+            }
         }
         .transition(.scale(scale: 0.94).combined(with: .opacity))
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isOutsideFolder)

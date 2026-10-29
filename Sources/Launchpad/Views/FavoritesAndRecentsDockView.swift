@@ -28,14 +28,14 @@ public struct FavoritesAndRecentsDockView: View {
                     Image(systemName: "star.fill")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.yellow)
-                    Text("แอปโปรด")
+                    Text(settings.tr("แอปโปรด", "Favorites"))
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .foregroundColor(.white.opacity(0.85))
                 }
                 .padding(.leading, 4)
 
                 if favoriteApps.isEmpty {
-                    Text("คลิกขวาที่แอปเพื่อปักหมุด")
+                    Text(settings.tr("คลิกขวาที่แอปเพื่อปักหมุด", "Right-click an app to pin"))
                         .font(.system(size: 10.5, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.45))
                         .padding(.horizontal, 6)
@@ -59,13 +59,13 @@ public struct FavoritesAndRecentsDockView: View {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.cyan.opacity(0.95))
-                    Text("เปิดล่าสุด")
+                    Text(settings.tr("เปิดล่าสุด", "Recent"))
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .foregroundColor(.white.opacity(0.85))
                 }
 
                 if recentApps.isEmpty {
-                    Text("ไม่มีประวัติเปิดแอป")
+                    Text(settings.tr("ไม่มีประวัติเปิดแอป", "No recent apps"))
                         .font(.system(size: 10.5, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.45))
                         .padding(.horizontal, 6)
@@ -125,6 +125,8 @@ public struct FavoritesAndRecentsDockView: View {
 }
 
 private struct DockAppButton: View {
+    @ObservedObject private var settings: AppSettings = .shared
+    @ObservedObject private var scanner: AppScanner = .shared
     let app: AppItem
     let isRunning: Bool
     let isFavorite: Bool
@@ -166,13 +168,24 @@ private struct DockAppButton: View {
             Button(action: {
                 onLaunch()
             }) {
-                Label("เปิด \(app.name)", systemImage: "arrow.up.forward.app")
+                Label(settings.tr("เปิด \(app.name)", "Open \(app.name)"), systemImage: "arrow.up.forward.app")
             }
 
             Button(action: {
                 NSWorkspace.shared.activateFileViewerSelecting([app.url])
             }) {
-                Label("Show in Finder", systemImage: "folder")
+                Label(settings.tr("แสดงใน Finder", "Show in Finder"), systemImage: "folder")
+            }
+
+            if isRunning {
+                Divider()
+
+                Button(action: {
+                    HapticManager.shared.playAction()
+                    scanner.quitApp(app)
+                }) {
+                    Label(settings.tr("ปิดแอปพลิเคชัน (\(app.name))", "Quit \(app.name)"), systemImage: "xmark.circle")
+                }
             }
 
             Divider()
@@ -182,9 +195,9 @@ private struct DockAppButton: View {
                 onToggleFavorite()
             }) {
                 if isFavorite {
-                    Label("ถอนหมุดออกจากแอปโปรด (Unpin)", systemImage: "star.slash")
+                    Label(settings.tr("ถอนหมุดออกจากแอปโปรด", "Remove from Favorites"), systemImage: "star.slash")
                 } else {
-                    Label("ปักหมุดเป็นแอปโปรด (Pin to Favorites)", systemImage: "star")
+                    Label(settings.tr("ปักหมุดเป็นแอปโปรด", "Pin to Favorites"), systemImage: "star")
                 }
             }
 
@@ -193,7 +206,7 @@ private struct DockAppButton: View {
                     HapticManager.shared.playClick()
                     onRemoveRecent()
                 }) {
-                    Label("ลบออกจากรายการล่าสุด", systemImage: "clock.badge.xmark")
+                    Label(settings.tr("ลบออกจากรายการล่าสุด", "Remove from Recent"), systemImage: "clock.badge.xmark")
                 }
             }
         }

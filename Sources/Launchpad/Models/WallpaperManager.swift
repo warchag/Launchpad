@@ -39,7 +39,7 @@ public final class WallpaperManager: ObservableObject {
         self.currentWallpaperURL = url
 
         Task.detached(priority: .userInitiated) {
-            let image = Self.loadDownsampledImage(from: url, maxDimension: 2048)
+            let image = Self.loadDownsampledImage(from: url, maxDimension: 960)
             await MainActor.run {
                 self.blurredWallpaper = image
             }

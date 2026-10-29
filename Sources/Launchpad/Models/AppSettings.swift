@@ -54,6 +54,10 @@ public final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(appLanguage.rawValue, forKey: Keys.appLanguage) }
     }
 
+    public func tr(_ th: String, _ en: String) -> String {
+        appLanguage == .thai ? th : en
+    }
+
     // 1. Icon & Grid Settings
     @Published public var autoSortAlphabetically: Bool {
         didSet {
@@ -176,7 +180,7 @@ public final class AppSettings: ObservableObject {
     public var shortcutDisplayString: String {
         switch shortcutPreset {
         case "none":
-            return "คลิกผ่าน Dock"
+            return tr("คลิกผ่าน Dock", "Dock Click")
         case "option_space":
             return "⌥ Space"
         case "control_space":
@@ -186,7 +190,7 @@ public final class AppSettings: ObservableObject {
         case "custom":
             return Self.formatCustomShortcut(keyCode: customKeyCode, carbonModifiers: UInt32(customModifiers))
         default:
-            return "คลิกผ่าน Dock"
+            return tr("คลิกผ่าน Dock", "Dock Click")
         }
     }
 
@@ -312,9 +316,9 @@ public final class AppSettings: ObservableObject {
     private init() {
         let defaults = UserDefaults.standard
         defaults.register(defaults: [
-            Keys.iconSize: 64.0,
-            Keys.gridColumns: 7,
-            Keys.gridRows: 5,
+            Keys.iconSize: Double(AppSettings.standardIconSize),
+            Keys.gridColumns: AppSettings.standardGridColumns,
+            Keys.gridRows: AppSettings.standardGridRows,
             Keys.backgroundOpacity: 0.38,
             Keys.blurRadius: 45.0,
             Keys.blurMaterial: 0,
@@ -336,16 +340,16 @@ public final class AppSettings: ObservableObject {
 
         self.autoSortAlphabetically = defaults.bool(forKey: Keys.autoSortAlphabetically)
 
-        // Native macOS Launchpad standard: 7 columns × 5 rows, FullScreen UI blur, 82px icons
-        self.iconSize = AppSettings.standardIconSize
+        let savedIconSize = CGFloat(defaults.double(forKey: Keys.iconSize))
+        self.iconSize = (64.0...96.0).contains(savedIconSize) ? savedIconSize : AppSettings.standardIconSize
+
+        // Fixed standard macOS Launchpad grid: 7 columns × 5 rows
         self.gridColumns = AppSettings.standardGridColumns
         self.gridRows = AppSettings.standardGridRows
-        self.blurMaterialIndex = 0
-
-        defaults.set(Double(AppSettings.standardIconSize), forKey: Keys.iconSize)
         defaults.set(AppSettings.standardGridColumns, forKey: Keys.gridColumns)
         defaults.set(AppSettings.standardGridRows, forKey: Keys.gridRows)
-        defaults.set(0, forKey: Keys.blurMaterial)
+
+        self.blurMaterialIndex = defaults.integer(forKey: Keys.blurMaterial)
 
         self.backgroundOpacity = defaults.double(forKey: Keys.backgroundOpacity)
         self.blurRadius = CGFloat(defaults.double(forKey: Keys.blurRadius))

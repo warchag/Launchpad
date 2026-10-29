@@ -9,8 +9,6 @@ public struct SettingsView: View {
     @State private var isCopiedDonate: Bool = false
     @State private var showPromptPayQR: Bool = true
     @State private var promptPayQRImage: NSImage? = nil
-    @State private var isCheckingUpdates: Bool = false
-    @State private var updateCheckResult: String? = nil
 
     public init() {}
 
@@ -108,11 +106,44 @@ public struct SettingsView: View {
 
     // 1. Layout & Icons Tab
     private var layoutSection: some View {
-        VStack(alignment: .leading, spacing: 22) {
+        VStack(alignment: .leading, spacing: 20) {
+            // Icon Size Slider
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(tr("ขนาดไอคอนแอป (Icon Size)", "App Icon Size"))
+                        .font(.headline)
+                    Spacer()
+                    Text("\(Int(settings.iconSize)) px")
+                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.accentColor)
+                }
+
+                Slider(value: $settings.iconSize, in: 64...96, step: 2)
+
+                Text(tr("ปรับขนาดไอคอนแอปและโฟลเดอร์ในหน้า Launchpad (ค่ามาตรฐาน 82 px)",
+                        "Adjust app and folder icon size on the Launchpad grid (Default: 82 px)."))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Divider()
+
             // Icon Organization & Sorting
             VStack(alignment: .leading, spacing: 10) {
-                Text(tr("การจัดเรียงไอคอนและแอป", "Icon Organization & Sorting"))
-                    .font(.headline)
+                HStack {
+                    Text(tr("การจัดเรียงไอคอนและโฟลเดอร์", "Icon & Folder Organization"))
+                        .font(.headline)
+
+                    Spacer()
+
+                    Text(tr("แอปทั้งหมด \(scanner.allApps.count) แอป • \(scanner.folderCount) โฟลเดอร์",
+                            "\(scanner.allApps.count) Apps • \(scanner.folderCount) Folders"))
+                        .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(Color.secondary.opacity(0.1)))
+                }
 
                 Toggle(isOn: $settings.autoSortAlphabetically) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -128,27 +159,51 @@ public struct SettingsView: View {
                     }
                 }
 
-                HStack(spacing: 12) {
+                HStack(spacing: 8) {
                     Button(tr("จัดเรียง ก-ฮ ทันที", "Sort A-Z Now")) {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                             AppScanner.shared.sortAlphabetically()
                         }
+                        HapticManager.shared.playClick()
                     }
                     .font(.system(size: 12))
 
-                    Button(tr("ซิงค์โฟลเดอร์จาก macOS", "Sync Folders from macOS")) {
+                    Button(tr("ซิงค์โฟลเดอร์จาก macOS", "Sync macOS Folders")) {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                             AppScanner.shared.importSystemGroups()
                         }
+                        HapticManager.shared.playAction()
                     }
                     .font(.system(size: 12))
 
+                    if scanner.folderCount > 0 {
+                        Button(tr("สลายโฟลเดอร์ทั้งหมด", "Ungroup All")) {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                AppScanner.shared.ungroupAllFolders()
+                            }
+                            HapticManager.shared.playAction()
+                        }
+                        .font(.system(size: 12))
+                    }
+
                     Spacer()
+
+                    Button(action: {
+                        AppScanner.shared.refreshApps()
+                        HapticManager.shared.playClick()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text(tr("รีเฟรชแอป", "Refresh"))
+                                .font(.system(size: 12))
+                        }
+                    }
                 }
                 .padding(.top, 4)
 
-                Text(tr("ซิงค์โฟลเดอร์เริ่มต้นจาก macOS เช่น โฟลเดอร์ 'Other' และโฟลเดอร์ยูทิลิตี้ของระบบ",
-                        "Syncs standard macOS folders like 'Other' and system utility groupings."))
+                Text(tr("รายการแอปจะอัปเดตอัตโนมัติเมื่อติดตั้งหรือลบแอปใน /Applications",
+                        "Application list updates automatically when apps are installed or removed in /Applications."))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -201,33 +256,6 @@ public struct SettingsView: View {
     // 3. General & Features Tab
     private var generalSection: some View {
         VStack(alignment: .leading, spacing: 18) {
-            // Dock Usage Information Card
-            HStack(alignment: .top, spacing: 14) {
-                Image(systemName: "dock.rectangle")
-                    .font(.system(size: 22))
-                    .foregroundColor(.accentColor)
-                    .frame(width: 32, height: 32)
-                    .background(Color.accentColor.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(tr("การใช้งานผ่าน Dock (แนะนำ)", "Use via Dock (Recommended)"))
-                        .font(.system(size: 13, weight: .semibold))
-                    Text(tr("คลิกไอคอน Launchpad ใน Dock เพื่อเปิดหรือสลับปิดหน้าต่างได้ทันที ปิดหน้าต่างได้ง่ายๆ ด้วยการคลิกพื้นที่ว่างหรือกดปุ่ม Esc",
-                            "Click the Launchpad icon in your Dock to toggle open or closed. Dismiss easily by clicking empty space or pressing Esc."))
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .padding(12)
-            .background(Color.accentColor.opacity(0.06))
-            .cornerRadius(10)
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
-            )
-
             // Hot Corner Trigger
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
@@ -394,23 +422,6 @@ public struct SettingsView: View {
 
             // Hidden Apps Manager Card
             hiddenAppsCard
-
-            Divider()
-
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(tr("แคชรายการแอปพลิเคชัน", "Applications Cache"))
-                        .font(.headline)
-                    Text(tr("สแกนโฟลเดอร์ /Applications ใหม่เพื่ออัปเดตแอปที่เพิ่งติดตั้ง",
-                            "Rescan /Applications folder to discover newly installed apps."))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-                Button(tr("สแกนและรีเฟรชตอนนี้", "Rescan & Refresh Now")) {
-                    AppScanner.shared.refreshApps()
-                }
-            }
         }
     }
 
@@ -426,7 +437,7 @@ public struct SettingsView: View {
                                 "Hidden Apps (\(settings.hiddenAppPaths.count))"))
                             .font(.headline)
                     }
-                    Text(tr("คลิกขวาที่แอปใน Launchpad แล้วเลือก 'Hide from Launchpad' เพื่อซ่อน",
+                    Text(tr("คลิกขวาที่แอปใน Launchpad แล้วเลือก 'ซ่อนจาก Launchpad' เพื่อซ่อน",
                             "Right-click any app in Launchpad and choose 'Hide from Launchpad' to hide."))
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -455,30 +466,32 @@ public struct SettingsView: View {
                 }
                 .padding(.vertical, 4)
             } else {
-                VStack(spacing: 6) {
-                    ForEach(settings.hiddenAppPaths, id: \.self) { path in
-                        let filename = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
-                        let icon = NSWorkspace.shared.icon(forFile: path)
-                        HStack(spacing: 8) {
-                            Image(nsImage: icon)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 22, height: 22)
-                            Text(filename)
-                                .font(.system(size: 12))
-                                .lineLimit(1)
-                            Spacer()
-                            Button(tr("กู้คืน", "Unhide")) {
-                                withAnimation {
-                                    settings.unhideApp(path: path)
+                ScrollView {
+                    VStack(spacing: 6) {
+                        ForEach(settings.hiddenAppPaths, id: \.self) { path in
+                            let filename = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
+                            let icon = NSWorkspace.shared.icon(forFile: path)
+                            HStack(spacing: 8) {
+                                Image(nsImage: icon)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 22, height: 22)
+                                Text(filename)
+                                    .font(.system(size: 12))
+                                    .lineLimit(1)
+                                Spacer()
+                                Button(tr("กู้คืน", "Unhide")) {
+                                    withAnimation {
+                                        settings.unhideApp(path: path)
+                                    }
+                                    HapticManager.shared.playClick()
                                 }
-                                HapticManager.shared.playClick()
+                                .font(.system(size: 11))
                             }
-                            .font(.system(size: 11))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.08)))
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.08)))
                     }
                 }
                 .frame(maxHeight: 160)
@@ -580,99 +593,53 @@ public struct SettingsView: View {
             }
 
             VStack(spacing: 12) {
-                // GitHub Repository & Version Check Row
-                VStack(spacing: 8) {
-                    HStack(spacing: 12) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(Color.purple.opacity(0.15))
-                                .frame(width: 36, height: 36)
-                            Image(systemName: "chevron.left.forwardslash.chevron.right")
-                                .font(.system(size: 14, weight: .bold))
+                // GitHub Repository Row
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.purple.opacity(0.15))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "chevron.left.forwardslash.chevron.right")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.purple)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text("GitHub: warchag/Launchpad")
+                                .font(.system(size: 13, weight: .semibold))
+                            Text("v1.2.0")
+                                .font(.system(size: 10, weight: .bold, design: .rounded))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.purple.opacity(0.15))
                                 .foregroundColor(.purple)
+                                .clipShape(Capsule())
                         }
+                        Text("https://github.com/warchag/Launchpad")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 6) {
-                                Text("GitHub: warchag/Launchpad")
-                                    .font(.system(size: 13, weight: .semibold))
-                                Text("v1.2.0")
-                                    .font(.system(size: 10, weight: .bold, design: .rounded))
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(Color.purple.opacity(0.15))
-                                    .foregroundColor(.purple)
-                                    .clipShape(Capsule())
-                            }
-                            Text("https://github.com/warchag/Launchpad")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                        }
+                    Spacer()
 
-                        Spacer()
-
-                        // Visit GitHub Repo Link
-                        if let url = URL(string: "https://github.com/warchag/Launchpad") {
-                            Link(destination: url) {
-                                HStack(spacing: 4) {
-                                    Text(tr("เปิด GitHub", "GitHub"))
-                                        .font(.system(size: 11.5, weight: .medium))
-                                    Image(systemName: "arrow.up.right")
-                                        .font(.system(size: 10, weight: .semibold))
-                                }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(Color.purple.opacity(0.12))
-                                .foregroundColor(.purple)
-                                .cornerRadius(6)
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        // Check for Updates Button
-                        Button(action: {
-                            checkForUpdates()
-                        }) {
+                    // Visit GitHub Repo Link
+                    if let url = URL(string: "https://github.com/warchag/Launchpad") {
+                        Link(destination: url) {
                             HStack(spacing: 4) {
-                                if isCheckingUpdates {
-                                    ProgressView()
-                                        .scaleEffect(0.55)
-                                        .frame(width: 12, height: 12)
-                                } else {
-                                    Image(systemName: "arrow.triangle.2.circlepath")
-                                        .font(.system(size: 10.5, weight: .semibold))
-                                }
-                                Text(tr("ตรวจสอบอัปเดต", "Check Updates"))
+                                Text(tr("เปิด GitHub", "GitHub"))
                                     .font(.system(size: 11.5, weight: .medium))
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 10, weight: .semibold))
                             }
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)
-                            .background(Color.secondary.opacity(0.12))
-                            .foregroundColor(.primary)
+                            .background(Color.purple.opacity(0.12))
+                            .foregroundColor(.purple)
                             .cornerRadius(6)
                         }
                         .buttonStyle(.plain)
-                        .disabled(isCheckingUpdates)
-                    }
-
-                    if let result = updateCheckResult {
-                        HStack(spacing: 6) {
-                            Image(systemName: "info.circle.fill")
-                                .font(.system(size: 11))
-                                .foregroundColor(.accentColor)
-                            Text(result)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            if let releaseUrl = URL(string: "https://github.com/warchag/Launchpad/releases") {
-                                Link(tr("เปิดหน้า Releases", "View Releases"), destination: releaseUrl)
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(.accentColor)
-                            }
-                        }
-                        .padding(.top, 4)
-                        .padding(.horizontal, 4)
                     }
                 }
                 .padding(10)
@@ -866,44 +833,5 @@ public struct SettingsView: View {
                 .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.secondary.opacity(0.06)))
             }
         }
-    }
-
-    private func checkForUpdates() {
-        guard !isCheckingUpdates else { return }
-        isCheckingUpdates = true
-        updateCheckResult = nil
-        HapticManager.shared.playClick()
-
-        guard let url = URL(string: "https://api.github.com/repos/warchag/Launchpad/releases/latest") else {
-            isCheckingUpdates = false
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.setValue("Launchpad-App", forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 4.0
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                self.isCheckingUpdates = false
-                let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.0"
-                if let data = data,
-                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let tagName = json["tag_name"] as? String {
-                    let cleanTag = tagName.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
-                    if cleanTag.compare(currentVersion, options: .numeric) == .orderedDescending {
-                        self.updateCheckResult = self.tr("พบเวอร์ชันใหม่ \(tagName)! พร้อมให้อัปเดต", "New version \(tagName) is available!")
-                    } else {
-                        self.updateCheckResult = self.tr("คุณกำลังใช้เวอร์ชันล่าสุดแล้ว (v\(currentVersion))", "You are using the latest version (v\(currentVersion))")
-                    }
-                } else {
-                    // Fallback to opening Releases page in browser
-                    self.updateCheckResult = self.tr("กำลังเปิดหน้า Releases บน GitHub...", "Opening Releases on GitHub...")
-                    if let releasesURL = URL(string: "https://github.com/warchag/Launchpad/releases") {
-                        NSWorkspace.shared.open(releasesURL)
-                    }
-                }
-            }
-        }.resume()
     }
 }

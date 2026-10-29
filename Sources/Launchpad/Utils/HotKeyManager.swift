@@ -7,7 +7,6 @@ public final class HotKeyManager: ObservableObject {
 
     private var hotKeyRefs: [EventHotKeyRef] = []
     private var eventHandler: EventHandlerRef?
-    private var dispatcherEventHandler: EventHandlerRef?
     private var isHandlerInstalled: Bool = false
 
     private init() {}
@@ -54,15 +53,6 @@ public final class HotKeyManager: ObservableObject {
             &eventType,
             nil,
             &eventHandler
-        )
-
-        InstallEventHandler(
-            GetEventDispatcherTarget(),
-            handlerBlock,
-            1,
-            &eventType,
-            nil,
-            &dispatcherEventHandler
         )
         isHandlerInstalled = true
     }

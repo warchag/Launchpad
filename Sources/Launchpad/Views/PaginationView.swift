@@ -14,8 +14,11 @@ public struct PaginationView: View {
             HStack(spacing: 12) {
                 ForEach(0..<totalPages, id: \.self) { index in
                     Button(action: {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            currentPage = index
+                        if currentPage != index {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                currentPage = index
+                            }
+                            HapticManager.shared.playPage()
                         }
                     }) {
                         Circle()

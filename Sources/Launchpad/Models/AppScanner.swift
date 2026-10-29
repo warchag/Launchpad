@@ -11,7 +11,14 @@ public final class AppScanner: ObservableObject {
     @Published public private(set) var allApps: [AppItem] = []
     @Published public private(set) var launchItems: [LaunchItem] = []
     @Published public private(set) var isLoading: Bool = false
-    @Published public var searchText: String = ""
+    @Published public var searchText: String = "" {
+        didSet {
+            if searchText != oldValue {
+                selectedSearchIndex = 0
+            }
+        }
+    }
+    @Published public var selectedSearchIndex: Int = 0
     @Published public var activeFolder: FolderItem? = nil
 
     @Published public private(set) var runningAppPaths: Set<String> = []
@@ -19,11 +26,54 @@ public final class AppScanner: ObservableObject {
 
     private var hasLoaded: Bool = false
     private let foldersKey = "launchpad_saved_folders"
+    private let itemOrderKey = "launchpad_item_order"
     private let hasImportedSystemGroupsKey = "launchpad_has_imported_system_groups"
+    private var directoryMonitors: [DispatchSourceFileSystemObject] = []
+    private var directoryRefreshTask: Task<Void, Never>?
 
     public init() {
         updateRunningApps()
         setupRunningAppsMonitor()
+        setupDirectoryMonitors()
+    }
+
+    private func setupDirectoryMonitors() {
+        let homeApps = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications").path
+        let pathsToWatch = ["/Applications", homeApps]
+
+        for path in pathsToWatch {
+            guard FileManager.default.fileExists(atPath: path) else { continue }
+            let fd = open(path, O_EVTONLY)
+            guard fd >= 0 else { continue }
+
+            let source = DispatchSource.makeFileSystemObjectSource(
+                fileDescriptor: fd,
+                eventMask: [.write, .rename, .delete],
+                queue: DispatchQueue.main
+            )
+
+            source.setEventHandler { [weak self] in
+                Task { @MainActor [weak self] in
+                    self?.scheduleDebouncedRefresh()
+                }
+            }
+
+            source.setCancelHandler {
+                close(fd)
+            }
+
+            source.resume()
+            directoryMonitors.append(source)
+        }
+    }
+
+    private func scheduleDebouncedRefresh() {
+        directoryRefreshTask?.cancel()
+        directoryRefreshTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 1_200_000_000) // 1.2s debounce
+            guard !Task.isCancelled else { return }
+            self?.refreshApps()
+        }
     }
 
     private func setupRunningAppsMonitor() {
@@ -76,6 +126,17 @@ public final class AppScanner: ObservableObject {
 
     public func hasRunningApps(folder: FolderItem) -> Bool {
         folder.apps.contains { isRunning(app: $0) }
+    }
+
+    public func quitApp(_ app: AppItem) {
+        let stdPath = URL(fileURLWithPath: app.path).standardizedFileURL.path
+        for running in NSWorkspace.shared.runningApplications {
+            if let bid = app.bundleIdentifier, running.bundleIdentifier == bid {
+                running.terminate()
+            } else if let url = running.bundleURL, (url.path == app.path || url.standardizedFileURL.path == stdPath) {
+                running.terminate()
+            }
+        }
     }
 
     public func scanAppsIfNeeded() {
@@ -187,6 +248,23 @@ public final class AppScanner: ObservableObject {
 
         if AppSettings.shared.autoSortAlphabetically {
             items.sort { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        } else if let savedOrder = UserDefaults.standard.stringArray(forKey: itemOrderKey), !savedOrder.isEmpty {
+            var itemDict: [String: LaunchItem] = [:]
+            for item in items {
+                itemDict[item.id] = item
+            }
+            var ordered: [LaunchItem] = []
+            var placedIds = Set<String>()
+            for id in savedOrder {
+                if let found = itemDict[id] {
+                    ordered.append(found)
+                    placedIds.insert(id)
+                }
+            }
+            for item in items where !placedIds.contains(item.id) {
+                ordered.append(item)
+            }
+            items = ordered
         }
 
         self.launchItems = items
@@ -196,6 +274,19 @@ public final class AppScanner: ObservableObject {
         self.launchItems.sort { item1, item2 in
             item1.name.localizedStandardCompare(item2.name) == .orderedAscending
         }
+        saveFolders()
+    }
+
+    public func moveItem(fromId: String, toId: String) {
+        guard fromId != toId,
+              let fromIndex = launchItems.firstIndex(where: { $0.id == fromId }),
+              let toIndex = launchItems.firstIndex(where: { $0.id == toId }) else { return }
+
+        var updated = launchItems
+        let moved = updated.remove(at: fromIndex)
+        updated.insert(moved, at: toIndex)
+        self.launchItems = updated
+        saveFolders()
     }
 
     public func createFolder(draggedPath: String, targetPath: String) {
@@ -317,6 +408,75 @@ public final class AppScanner: ObservableObject {
         saveFolders()
     }
 
+    public func moveAppInFolder(folderId: UUID, fromPath: String, toPath: String) {
+        guard fromPath != toPath else { return }
+        for item in launchItems {
+            if case .folder(let folder) = item, folder.id == folderId {
+                guard let fromIndex = folder.apps.firstIndex(where: { $0.path == fromPath }),
+                      let toIndex = folder.apps.firstIndex(where: { $0.path == toPath }) else { return }
+                var updated = folder.apps
+                let moved = updated.remove(at: fromIndex)
+                updated.insert(moved, at: toIndex)
+                folder.apps = updated
+                saveFolders()
+                break
+            }
+        }
+    }
+
+    public var folderCount: Int {
+        launchItems.reduce(0) { count, item in
+            if case .folder = item { return count + 1 }
+            return count
+        }
+    }
+
+    public func ungroupFolder(folderId: UUID) {
+        var newItems: [LaunchItem] = []
+        for item in launchItems {
+            if case .folder(let folder) = item, folder.id == folderId {
+                for app in folder.apps {
+                    newItems.append(.app(app))
+                }
+            } else {
+                newItems.append(item)
+            }
+        }
+
+        if AppSettings.shared.autoSortAlphabetically {
+            newItems.sort { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        }
+
+        if activeFolder?.id == folderId {
+            activeFolder = nil
+        }
+
+        self.launchItems = newItems
+        saveFolders()
+    }
+
+    public func ungroupAllFolders() {
+        var newItems: [LaunchItem] = []
+        for item in launchItems {
+            switch item {
+            case .app(let app):
+                newItems.append(.app(app))
+            case .folder(let folder):
+                for app in folder.apps {
+                    newItems.append(.app(app))
+                }
+            }
+        }
+
+        if AppSettings.shared.autoSortAlphabetically {
+            newItems.sort { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        }
+
+        activeFolder = nil
+        self.launchItems = newItems
+        saveFolders()
+    }
+
     private func removeAppFromAnyFolder(appPath: String) {
         for item in launchItems {
             if case .folder(let folder) = item {
@@ -336,6 +496,8 @@ public final class AppScanner: ObservableObject {
         if let data = try? JSONEncoder().encode(saved) {
             UserDefaults.standard.set(data, forKey: foldersKey)
         }
+        let orderIds = launchItems.map { $0.id }
+        UserDefaults.standard.set(orderIds, forKey: itemOrderKey)
     }
 
     private func loadSavedFolders() -> [SavedFolder] {
@@ -477,7 +639,7 @@ public final class AppScanner: ObservableObject {
         return .other
     }
 
-    // Filtered apps based on search query
+    // Filtered apps based on search query (Bilingual: localized display name + English bundle filename)
     public var filteredApps: [AppItem] {
         let hidden = Set(AppSettings.shared.hiddenAppPaths)
         let visible = allApps.filter { !hidden.contains($0.path) }
@@ -488,13 +650,21 @@ public final class AppScanner: ObservableObject {
 
         return visible.filter { app in
             let name = app.name.lowercased()
-            if name.contains(query) {
+            let bundleFileName = app.url.deletingPathExtension().lastPathComponent.lowercased()
+
+            if name.contains(query) || bundleFileName.contains(query) {
                 return true
             }
 
             let words = name.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }
             let acronym = words.compactMap { $0.first }.map { String($0) }.joined()
             if acronym.starts(with: query) {
+                return true
+            }
+
+            let enWords = bundleFileName.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }
+            let enAcronym = enWords.compactMap { $0.first }.map { String($0) }.joined()
+            if enAcronym.starts(with: query) {
                 return true
             }
 

@@ -1,6 +1,7 @@
 import SwiftUI
 
 public struct SearchBarView: View {
+    @ObservedObject private var settings: AppSettings = .shared
     @Binding var text: String
     @FocusState private var isFocused: Bool
     public let onSubmit: () -> Void
@@ -22,7 +23,7 @@ public struct SearchBarView: View {
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(.white.opacity(0.75))
 
-            TextField("Search", text: $text)
+            TextField(settings.tr("ค้นหาแอป...", "Search"), text: $text)
                 .textFieldStyle(.plain)
                 .font(.system(size: 15, weight: .regular, design: .rounded))
                 .foregroundColor(.white)
@@ -56,8 +57,16 @@ public struct SearchBarView: View {
         .shadow(color: Color.black.opacity(0.35), radius: 10, x: 0, y: 5)
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                isFocused = true
+                isFocused = settings.autoFocusSearch
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .launchpadDidPresent)) { _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                isFocused = settings.autoFocusSearch
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .launchpadFocusSearch)) { _ in
+            isFocused = true
         }
     }
 }

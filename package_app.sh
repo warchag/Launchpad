@@ -4,8 +4,12 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR"
 
-echo "==> Building Release Binary with Xcode Toolchain..."
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift build -c release
+echo "==> Building Release Binary..."
+if [ -d "/Applications/Xcode.app/Contents/Developer" ]; then
+    DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift build -c release
+else
+    swift build -c release
+fi
 
 APP_NAME="Launchpad.app"
 APP_DIR="$DIR/$APP_NAME"
@@ -70,4 +74,8 @@ EOF
 echo "==> Signing application bundle..."
 codesign --force --deep --sign - "$APP_DIR"
 
-echo "==> Successfully created $APP_NAME at $APP_DIR"
+echo "==> Creating Launchpad.zip archive for distribution..."
+rm -f "$DIR/Launchpad.zip"
+ditto -c -k --keepParent "$APP_DIR" "$DIR/Launchpad.zip"
+
+echo "==> Successfully created $APP_NAME and Launchpad.zip at $DIR"

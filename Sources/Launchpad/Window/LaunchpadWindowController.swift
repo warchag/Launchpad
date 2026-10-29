@@ -35,6 +35,22 @@ public final class LaunchpadWindowController: NSObject, NSWindowDelegate {
 
     private override init() {
         super.init()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(screenParametersDidChange),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
+    }
+
+    @objc private func screenParametersDidChange() {
+        guard isVisible, !isDismissing, let win = window else { return }
+        let mouseLocation = NSEvent.mouseLocation
+        let targetScreen = NSScreen.screens.first { NSMouseInRect(mouseLocation, $0.frame, false) } ?? NSScreen.main ?? NSScreen.screens.first
+        if let screen = targetScreen {
+            win.setFrame(screen.frame, display: true)
+            WallpaperManager.shared.loadWallpaper(for: screen, force: true)
+        }
     }
 
     public func toggle() {
@@ -110,6 +126,8 @@ public final class LaunchpadWindowController: NSObject, NSWindowDelegate {
         win.alphaValue = 0.0
         win.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+
+        NotificationCenter.default.post(name: .launchpadDidPresent, object: nil)
 
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.22
@@ -229,12 +247,29 @@ public final class LaunchpadWindowController: NSObject, NSWindowDelegate {
 
     private func setupEventMonitor() {
         removeEventMonitor()
-        localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .scrollWheel]) { [weak self] event in
+        localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .scrollWheel, .magnify]) { [weak self] event in
+            if event.type == .magnify {
+                if abs(event.magnification) > 0.08 {
+                    HapticManager.shared.playAction()
+                    if AppScanner.shared.activeFolder != nil {
+                        AppScanner.shared.activeFolder = nil
+                    } else {
+                        self?.dismiss()
+                    }
+                    return nil
+                }
+                return event
+            }
+
             if event.type == .keyDown {
                 // KeyCode 53 is Escape
                 if event.keyCode == 53 {
                     if AppScanner.shared.activeFolder != nil {
                         AppScanner.shared.activeFolder = nil
+                        return nil
+                    }
+                    if !AppScanner.shared.searchText.isEmpty {
+                        AppScanner.shared.searchText = ""
                         return nil
                     }
                     self?.dismiss()
@@ -247,13 +282,53 @@ public final class LaunchpadWindowController: NSObject, NSWindowDelegate {
                     return nil
                 }
 
-                // Arrow keys for paging when search text is empty
-                if AppScanner.shared.searchText.isEmpty {
-                    if event.keyCode == 123 { // Left Arrow
-                        NotificationCenter.default.post(name: .launchpadPreviousPage, object: nil)
-                        return nil
-                    } else if event.keyCode == 124 { // Right Arrow
-                        NotificationCenter.default.post(name: .launchpadNextPage, object: nil)
+                // Arrow keys for paging when search text is empty, or navigating search results when searching
+                if AppScanner.shared.activeFolder == nil {
+                    if AppScanner.shared.searchText.isEmpty {
+                        if event.keyCode == 123 { // Left Arrow
+                            NotificationCenter.default.post(name: .launchpadPreviousPage, object: nil)
+                            return nil
+                        } else if event.keyCode == 124 { // Right Arrow
+                            NotificationCenter.default.post(name: .launchpadNextPage, object: nil)
+                            return nil
+                        }
+                    } else {
+                        let count = AppScanner.shared.filteredApps.count
+                        let cols = AppSettings.shared.gridColumns
+                        if count > 0 {
+                            if event.keyCode == 124 { // Right Arrow
+                                AppScanner.shared.selectedSearchIndex = min(count - 1, AppScanner.shared.selectedSearchIndex + 1)
+                                HapticManager.shared.playClick()
+                                return nil
+                            } else if event.keyCode == 123 { // Left Arrow
+                                AppScanner.shared.selectedSearchIndex = max(0, AppScanner.shared.selectedSearchIndex - 1)
+                                HapticManager.shared.playClick()
+                                return nil
+                            } else if event.keyCode == 125 { // Down Arrow
+                                AppScanner.shared.selectedSearchIndex = min(count - 1, AppScanner.shared.selectedSearchIndex + cols)
+                                HapticManager.shared.playClick()
+                                return nil
+                            } else if event.keyCode == 126 { // Up Arrow
+                                AppScanner.shared.selectedSearchIndex = max(0, AppScanner.shared.selectedSearchIndex - cols)
+                                HapticManager.shared.playClick()
+                                return nil
+                            }
+                        }
+                    }
+                }
+
+                // Type-to-Search when search field is not currently focused
+                let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+                let hasCommandOrCtrl = flags.contains(.command) || flags.contains(.control) || flags.contains(.option)
+                let isTextViewFocused = self?.window?.firstResponder is NSTextView
+                if !hasCommandOrCtrl && !isTextViewFocused && AppScanner.shared.activeFolder == nil {
+                    let ignoredKeyCodes: Set<UInt16> = [36, 48, 49, 51, 53, 76, 123, 124, 125, 126]
+                    if !ignoredKeyCodes.contains(event.keyCode),
+                       let chars = event.characters,
+                       !chars.isEmpty,
+                       chars.unicodeScalars.allSatisfy({ !CharacterSet.controlCharacters.contains($0) }) {
+                        AppScanner.shared.searchText.append(chars)
+                        NotificationCenter.default.post(name: .launchpadFocusSearch, object: nil)
                         return nil
                     }
                 }
@@ -284,4 +359,6 @@ public final class LaunchpadWindowController: NSObject, NSWindowDelegate {
 extension Notification.Name {
     public static let launchpadPreviousPage = Notification.Name("launchpadPreviousPage")
     public static let launchpadNextPage = Notification.Name("launchpadNextPage")
+    public static let launchpadDidPresent = Notification.Name("launchpadDidPresent")
+    public static let launchpadFocusSearch = Notification.Name("launchpadFocusSearch")
 }

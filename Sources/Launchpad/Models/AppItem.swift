@@ -26,6 +26,11 @@ public enum AppCategory: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    @MainActor
+    public var localizedName: String {
+        AppSettings.shared.appLanguage == .thai ? displayName : rawValue
+    }
+
     public var iconName: String {
         switch self {
         case .all: return "square.grid.2x2"
