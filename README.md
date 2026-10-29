@@ -187,4 +187,8 @@ swift make_icon.swift
 
 * **GitHub Repository**: [github.com/warchag/Launchpad](https://github.com/warchag/Launchpad)
 * **Facebook Page**: [Learn to Developer](https://www.facebook.com/learntodeveloper)
-* **สนับสนุนผู้พัฒนา (Buy Me a Coffee / PromptPay)**: พร้อมเพย์ `095-920-1930` (นายวรจักร คงหนู — สามารถสแกน QR Code ได้โดยตรงภายในหน้าต่างตั้งค่าของแอป)
+* **สนับสนุนผู้พัฒนา (Buy Me a Coffee / PromptPay)**: พร้อมเพย์ `095-920-1930` (นายวรจักร คงหนู — สามารถสแกน QR Code ด้านล่าง หรือสแกนได้โดยตรงภายในหน้าต่างตั้งค่าของแอป)
+
+<div align="center">
+  <img src="screenshot/PromptPayQR.png" alt="PromptPay QR Code - นายวรจักร คงหนู" width="280" />
+</div>
